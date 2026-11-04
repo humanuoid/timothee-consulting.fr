@@ -1,0 +1,9 @@
+/vendor/
+/var/
+/node_modules/
+/.env
+/.env.local
+/.env.*.local
+/.phpunit.result.cache
+/public/uploads/
+*.log

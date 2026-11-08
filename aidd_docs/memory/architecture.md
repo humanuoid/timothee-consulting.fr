@@ -8,30 +8,122 @@
 - Symfony UX (Turbo, Stimulus, Live Components) ; assets JS en TypeScript compilés par esbuild, contrôleurs Stimulus écrits en TS
 - Hébergement o2switch (mutualisé) ; déploiement par SSH, uniquement depuis la machine du propriétaire
 
-## How it fits together
+## Structure DDD et règle de dépendance
 
-```mermaid
-flowchart LR
-    Public[Visiteurs] -->|HTTP| SF[Symfony public: SiteController + Twig]
-    SF -->|lecture| DB[(MariaDB: pages, blocs, versions)]
-    SF -->|cache full-page si up| Redis[(Redis)]
-    Admin[Éditeur] -->|HTTP| ADM[Dashboard: éditeur, preview]
-    ADM -->|écrit le brouillon| DB
-    ADM -->|preview, même Twig| SF
-    Pub[Événement ContentPublished] -->|invalide les tags| Redis
-    Redis -.->|si down, fallback direct| DB
+```txt
+Presentation ──► Application ──► Domain ◄── Infrastructure
+                      └────────────► (implémente les ports du Domain)
 ```
 
-## Key decisions
+- `src/Domain` ne dépend de rien (ni Symfony, ni Doctrine) : agrégats, value objects, événements, ports (interfaces de repositories).
+- `src/Application` dépend de Domain : services applicatifs, handlers d'événements, orchestration.
+- `src/Infrastructure` implémente les ports de Domain (repositories Doctrine, cache Redis, mailer).
+- `src/Presentation` (contrôleurs, Live Components, formulaires, commandes console) ne fait que du HTTP/CLI → Application.
+- **Règle absolue : la dépendance va toujours vers l'intérieur. Jamais l'inverse.**
 
-- DDD + event-driven : `src/Domain`, `src/Application`, `src/Infrastructure`, `src/Presentation`. Événements métier (ex. `ContentPublished`) pour les effets de bord (invalidation cache). Pas de CQRS systématique.
-- Principes SOLID, KISS, DRY, pas de sur-ingénierie. Design patterns imposés : Constant (noms d'événements, tags Redis) et Décorateur (cache Redis par-dessus le dépôt BDD, avec fallback si Redis est down).
-- Références : OpenClassrooms (design patterns) et https://ngandu.dev/fr/blog/symfony-clean-architecture-ddd
-- Le site public fonctionne sans Redis : le cache est un décorateur optionnel, jamais une dépendance.
-- Un seul dépôt git public (MIT) ; pas de submodule, le contenu vit en BDD.
-- Preview = même moteur Twig que le public : ne jamais dupliquer un moteur de rendu.
+## Où va quoi
+
+| Type de code | Destination |
+| --- | --- |
+| Entité/agrégat, value object, événement, port (interface) | `src/Domain/...` |
+| Service applicatif, handler d'événement, DTO | `src/Application/...` |
+| Repository Doctrine, adapter Redis/mailer | `src/Infrastructure/...` |
+| Contrôleur, Live Component, Form Type, Command console | `src/Presentation/...` |
+| Templates Twig du site public | `templates/site/` |
+| Templates Twig du dashboard | `templates/admin/` |
+| Assets TS + contrôleurs Stimulus | `assets/` → esbuild → `public/build/` |
+
+Note pragmatique : les entités Domain portent les attributs ORM directement (pas de mapping XML séparé — KISS).
+
+## SOLID appliqués
+
+- **S** — un service = une responsabilité : `DraftService` (brouillon), `PublishService` (publication), `VersioningService` (snapshots). Jamais de `ContentManager` fourre-tout.
+- **O** — un nouveau type de bloc s'ajoute sans modifier le code existant : les formulaires et partials Twig sont résolus par convention de nom à partir du type (`hero` → `HeroBlockType` + `_partials/hero.html.twig`).
+- **L** — `RedisCachedSiteRenderer` et `CacheAsideSiteRenderer` sont interchangeables derrière `SiteRendererInterface` ; le contrôleur ne change pas.
+- **I** — des ports fins : `PageRepositoryInterface::findPublishedBySlug(string $slug)`, pas une interface de 15 méthodes.
+- **D** — on injecte toujours l'interface (le port), jamais l'implémentation concrète Doctrine/Redis.
+
+## KISS / DRY
+
+- La solution la plus simple qui marche. Pas de CQRS, pas de bus maison : le messenger natif de Symfony suffit.
+- Un seul moteur de rendu Twig (public = preview = admin) : jamais de rendu dupliqué.
+- Aucune chaîne magique en dur : noms d'événements, tags de cache, slugs métier passent par des constantes (voir Constant).
+
+## Pattern Constant (imposé)
+
+```php
+// src/Domain/Cache/CacheTags.php
+final class CacheTags
+{
+    public static function forPage(string $slug): string
+    {
+        return 'page:'.$slug;
+    }
+}
+
+// src/Domain/Event/EventNames.php
+final class EventNames
+{
+    public const CONTENT_PUBLISHED = 'content.published';
+    public const DRAFT_SAVED = 'draft.saved';
+}
+```
+
+Règle : tout nom d'événement, tag de cache ou clé métier passe par une constante dans `src/Domain`. Recherche globale fiable, refactoring sûr, zéro faute de frappe.
+
+## Pattern Décorateur (imposé)
+
+```php
+// src/Domain/Service/SiteRendererInterface.php — le port
+interface SiteRendererInterface
+{
+    public function render(Page $page, bool $useDraft): string;
+}
+
+// src/Infrastructure/Cache/CacheAsideSiteRenderer.php — lit la BDD
+final class CacheAsideSiteRenderer implements SiteRendererInterface { /* ... */ }
+
+// src/Infrastructure/Cache/RedisCachedSiteRenderer.php — le décorateur
+final class RedisCachedSiteRenderer implements SiteRendererInterface
+{
+    public function __construct(
+        private readonly SiteRendererInterface $inner, // le décoré
+        private readonly CacheInterface $redisCache,
+    ) {}
+
+    public function render(Page $page, bool $useDraft): string
+    {
+        if ($useDraft) {
+            return $this->inner->render($page, true); // le brouillon n'est JAMAIS mis en cache
+        }
+        try {
+            return $this->redisCache->get(
+                CacheTags::forPage($page->getSlug()),
+                fn () => $this->inner->render($page, false),
+            );
+        } catch (\Throwable) {
+            return $this->inner->render($page, false); // Redis down → fallback BDD, le site répond toujours
+        }
+    }
+}
+```
+
+Règles : le décorateur implémente la même interface que le décoré ; le fallback garantit que le site fonctionne sans Redis ; la preview (brouillon) contourne toujours le cache.
+
+## Event-driven
+
+- Un événement = un fait métier, émis par le Domain : `ContentPublished`, `DraftSaved`.
+- Un listener = un seul effet de bord : `InvalidateCacheOnPublish` (Application), etc.
+- La publication : `PublishService` fait le flip + le snapshot + `dispatch(new ContentPublished(...))`. Le contrôleur ne sait rien du cache.
+- Événements nommés via `EventNames` (constantes), listeners câblés par attribut ou `config/services.yaml`.
 
 ## Gotchas
 
 - o2switch ne peut pas joindre github.com (DNS non autorisés) : le déploiement passe par SSH depuis la machine locale (voir `deployment.md`).
-- o2switch fournit MariaDB et Redis en natif ; aucun cron o2switch n'est prévu (Redis est géré par l'hébergeur, sa chute n'est pas dramatique).
+- o2switch fournit MariaDB et Redis en natif ; aucun cron o2switch (Redis géré par l'hébergeur, sa chute n'est pas dramatique).
+- Preview = même moteur Twig que le public : ne jamais dupliquer un moteur de rendu.
+
+## Références externes
+
+- https://ngandu.dev/fr/blog/symfony-clean-architecture-ddd (clean architecture + DDD en Symfony)
+- OpenClassrooms, parcours design patterns (Constant, Décorateur)

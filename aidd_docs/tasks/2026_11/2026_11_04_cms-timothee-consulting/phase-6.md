@@ -2,7 +2,7 @@
 status: pending
 ---
 
-# Instruction: Éditeur de blocs (Live Component) avec autosave du brouillon
+# Instruction: Éditeur de blocs (Live Component) + autosave du brouillon, en Stimulus/TypeScript
 
 ## Architecture projection
 
@@ -10,28 +10,28 @@ status: pending
 
 ```txt
 .
-├── ✅ src/LiveComponent/PageEditor.php
-├── ✅ src/Controller/Admin/PageEditorController.php
-├── ✅ src/Service/DraftService.php
-├── ✅ src/Form/Block/HeroBlockType.php
-├── ✅ src/Form/Block/RichTextBlockType.php
-├── ✅ src/Form/Block/ParcoursBlockType.php
-├── ✅ src/Form/Block/CompetencesBlockType.php
-├── ✅ src/Form/Block/ProjetsBlockType.php
-├── ✅ src/Form/Block/ContactBlockType.php
+├── ✅ src/Presentation/LiveComponent/PageEditor.php
+├── ✅ src/Presentation/Controller/Admin/PageEditorController.php
+├── ✅ src/Presentation/Form/Block/HeroBlockType.php
+├── ✅ src/Presentation/Form/Block/RichTextBlockType.php
+├── ✅ src/Presentation/Form/Block/ParcoursBlockType.php
+├── ✅ src/Presentation/Form/Block/CompetencesBlockType.php
+├── ✅ src/Presentation/Form/Block/ProjetsBlockType.php
+├── ✅ src/Presentation/Form/Block/ContactBlockType.php
 ├── ✅ templates/admin/page/edit.html.twig
-├── ✅ assets/controllers/editor_controller.js
-└── ✅ assets/controllers/autosave_controller.js
+├── ✅ assets/controllers/editor_controller.ts
+├── ✅ assets/controllers/autosave_controller.ts
+└── ✅ assets/richtext.ts
 ```
 
 ## Test Scope
 
 | Scenario | Action | Observable outcome | Actor |
 | --- | --- | --- | --- |
-| Setup | Page accueil avec brouillon, connecté en editor | Éditeur ouvert sur la page | browser |
-| Happy path | Modifier le titre du hero, attendre 1 s | "Enregistré à HH:MM:SS", `Page.draft` à jour en BDD, `published` inchangé | browser, cli |
-| Edge case | Couper le réseau pendant l'autosave | Indicateur "hors ligne", resynchronisation au retour | browser |
-| Teardown | Restaurer le snapshot initial | Contenu revenu à l'état de départ | browser |
+| Setup | Page accueil en brouillon, connecté en editor | Éditeur ouvert | browser |
+| Happy path | Modifier le titre du hero, attendre 1 s | "Enregistré à HH:MM:SS", `draft` à jour en BDD, `published` inchangé | browser, cli |
+| Edge case | Couper le réseau pendant l'autosave | Indicateur "hors ligne", resync au retour | browser |
+| Teardown | Restore du snapshot initial (phase 7) | Contenu initial | browser |
 
 ## Wireframe
 
@@ -42,8 +42,8 @@ status: pending
 ├──────────────┬────────────────────────────────┤
 │ (4) Liste    │ (5) Formulaire du bloc         │
 │ des blocs    │     sélectionné                │
-│  Hero        │   champs selon le type         │
-│  Parcours    │   (texte, image, liste…)       │
+│  Hero        │   champs selon le type (TS)    │
+│  Parcours    │                                │
 │  …           │                                │
 │ (6) + Bloc   │                                │
 └──────────────┴────────────────────────────────┘
@@ -58,41 +58,41 @@ status: pending
 
 ## Tasks to do
 
-### `1)` Copie de travail brouillon
-
-> Le public ne voit que `published`.
-
-1. `Page.draft` (JSON) = copie de travail ; `Page.published` = version en ligne
-2. `DraftService` : `getWorking(Page)` (draft si présent, sinon published), `saveDraft(Page, payload)`
-
-### `2)` Éditeur de blocs en Live Component
+### `1)` Éditeur de blocs en Live Component
 
 > Pas de gros formulaire : une page = une liste ordonnée de blocs.
 
-1. `PageEditor` : liste des blocs (type, position), actions ajouter, supprimer, monter, descendre
+1. `PageEditor` : liste des blocs (type, position), actions ajouter/supprimer/monter/descendre
 2. Sélection d'un bloc → formulaire typé (`HeroBlockType`, `RichTextBlockType`, …)
-3. Champs structurés stockés en JSON dans le payload du bloc
+3. Payload JSON par bloc, persisté via `DraftService::saveDraft`
 
-### `3)` Champ texte riche
+### `2)` Champ texte riche
 
 > WYSIWYG léger, pas un textarea brut.
 
-1. Intégrer un éditeur riche (TipTap via AssetMapper, ou Trix) pour les blocs `richtext`
-2. Stockage du contenu en JSON de l'éditeur, HTML nettoyé au rendu
+1. Éditeur riche (TipTap via build esbuild) pour les blocs `richtext`, contenu en JSON
+2. HTML nettoyé au rendu côté `SiteRenderer`
 
-### `4)` Autosave
+### `3)` Autosave en TypeScript
 
-> Environ 1 s après la dernière frappe.
+> ~1 s après la dernière frappe.
 
-1. Stimulus `autosave_controller` : debounce 1000 ms → POST `/admin/pages/{id}/autosave` (payload JSON)
-2. Contrôleur : écrit `Page.draft` via DraftService, répond `{savedAt}`
-3. Indicateur visuel "Enregistré à HH:MM:SS" / "hors ligne"
+1. `autosave_controller.ts` (Stimulus) : debounce 1000 ms → POST `/admin/pages/{id}/autosave`
+2. Contrôleur : `DraftService::saveDraft`, répond `{savedAt}`
+3. Indicateur "Enregistré à HH:MM:SS" / "hors ligne" (gestion d'erreur réseau)
+
+### `4)` Blocs : types du portfolio
+
+> Couvre les sections du site actuel.
+
+1. Types : hero, parcours, compétences, projets, contact, richtext
+2. Chaque type a son partial Twig (phase 4) et son formulaire admin
 
 ## Test acceptance criteria
 
 | Task | Acceptance criteria |
 | --- | --- |
-| 1 | Après sauvegarde, `published` ne change pas et `draft` oui ; une page sans draft sert `published` |
-| 2 | Ajouter, déplacer ou supprimer un bloc met à jour l'ordre rendu ; le formulaire affiché dépend du type choisi |
-| 3 | Le bloc richtext enregistre du contenu formaté (gras, listes) et le rend correctement côté site |
-| 4 | 3 frappes rapides → 1 seul appel autosave ; BDD à jour ; l'indicateur affiche l'heure |
+| 1 | Ajouter/déplacer/supprimer un bloc met à jour l'ordre ; le formulaire affiché dépend du type choisi |
+| 2 | Le bloc richtext enregistre du contenu formaté, rendu proprement côté public |
+| 3 | 3 frappes rapides → 1 seul POST autosave ; BDD à jour ; indicateur à l'heure |
+| 4 | Les 6 types de bloc ont formulaire admin + rendu public sans erreur |

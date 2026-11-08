@@ -2,7 +2,7 @@
 status: pending
 ---
 
-# Instruction: Preview live (même moteur Twig) + versioning par snapshots + cache Redis (admin et full-page public)
+# Instruction: Preview live (même Twig) + versioning + cache Redis en décorateur (fallback BDD, site OK sans Redis) + event-driven
 
 ## Architecture projection
 
@@ -10,13 +10,18 @@ status: pending
 
 ```txt
 .
-├── ✅ src/Controller/Admin/PreviewController.php
-├── ✅ src/Service/VersioningService.php
-├── ✅ src/Service/RenderCache.php
-├── ✅ src/Controller/Admin/VersionController.php
+├── ✅ src/Domain/Event/ContentPublished.php
+├── ✅ src/Domain/Event/DraftSaved.php
+├── ✅ src/Domain/Cache/CacheTags.php
+├── ✅ src/Application/Service/VersioningService.php
+├── ✅ src/Application/EventListener/InvalidateCacheOnPublish.php
+├── ✅ src/Infrastructure/Cache/RedisCachedSiteRenderer.php
+├── ✅ src/Infrastructure/Cache/CacheAsideSiteRenderer.php
+├── ✅ src/Presentation/Controller/Admin/PreviewController.php
+├── ✅ src/Presentation/Controller/Admin/VersionController.php
 ├── ✅ templates/admin/page/preview.html.twig
 ├── ✅ templates/admin/page/versions.html.twig
-├── ✅ assets/controllers/preview_controller.js
+├── ✅ assets/controllers/preview_controller.ts
 └── ✅ config/packages/cache.yaml
 ```
 
@@ -24,10 +29,10 @@ status: pending
 
 | Scenario | Action | Observable outcome | Actor |
 | --- | --- | --- | --- |
-| Setup | Page avec brouillon modifié (phase 6), connecté en editor | Preview accessible | browser |
-| Happy path | Modifier un bloc → autosave → observer la preview | L'iframe reflète le brouillon en moins de 2 s, badge "BROUILLON" | browser |
-| Edge case | Restaurer une ancienne version ; consulter le public après invalidation | Le brouillon revient au snapshot ; le public recalcule depuis la BDD | browser, cli |
-| Teardown | Supprimer les versions de test, vider le cache Redis | Historique et cache revenus à la baseline | system |
+| Setup | Brouillon modifié (phase 6), connecté | Preview accessible | browser |
+| Happy path | Modifier un bloc → autosave → observer la preview | L'iframe reflète le brouillon en < 2 s, badge "BROUILLON" | browser |
+| Edge case | Redis stoppé (`docker compose stop redis`) puis GET `/` | Le site répond depuis la BDD, aucune erreur | browser |
+| Teardown | Vider le cache Redis, restore version de test | Cache et contenu revenus à la baseline | system |
 
 ## Wireframe
 
@@ -46,48 +51,51 @@ status: pending
 ```
 
 1. Barre de l'éditeur.
-2. Badge "BROUILLON" tant que la page n'est pas publiée.
+2. Badge "BROUILLON" tant que non publié.
 3. Lien vers l'historique des versions.
 4. Éditeur de blocs (phase 6).
-5. Preview : le vrai template public rendu avec le brouillon, dans une iframe rafraîchie automatiquement.
+5. Preview : le vrai template public rendu avec le brouillon, iframe rafraîchie automatiquement.
 
 ## Tasks to do
 
 ### `1)` Route de preview
 
-> Même moteur que le public : rendu exact garanti.
+> Même moteur Twig que le public : rendu exact garanti.
 
-1. `PreviewController` : `/admin/preview/{page}` → `SiteRenderer::render($page, useDraft: true)` → HTML pour l'iframe
+1. `PreviewController` : `/admin/preview/{page}` → `SiteRenderer::render($page, useDraft: true)`
 2. `#[IsGranted]` editor/admin ; jamais exposé sur le domaine public
+3. `preview_controller.ts` recharge l'iframe après chaque autosave (debounce 1,5 s)
 
-### `2)` Preview live dans l'éditeur
+### `2)` Versioning par snapshots
 
-> L'iframe se rafraîchit après chaque autosave.
+> Compense l'absence de git sur le contenu.
 
-1. `edit.html.twig` : colonne preview = iframe vers `/admin/preview/{id}` + badge BROUILLON
-2. Après autosave OK, `preview_controller` recharge l'iframe (debounce 1,5 s)
+1. `VersioningService::snapshot(Page, label, author)` → `ContentVersion`
+2. Snapshot auto à chaque autosave (`DraftSaved`) et à la publication (`ContentPublished`)
+3. `/admin/pages/{id}/versions` : liste + restauration (écrit le snapshot dans `draft`)
 
-### `3)` Versioning par snapshots
+### `3)` Event-driven : événements + listeners
 
-> Compense l'absence de git sur le contenu (passage en BDD).
+> Pattern Constant pour les noms d'événements et tags.
 
-1. `VersioningService::snapshot(Page, label, author)` : copie `draft` (ou `published`) dans `ContentVersion`
-2. Snapshot auto à chaque autosave (label "autosave") et à chaque publication (label "publication vN")
-3. `/admin/pages/{id}/versions` : liste des versions + restauration (écrit le snapshot dans `draft`)
+1. `Domain/Event/ContentPublished.php`, `DraftSaved.php` ; `Domain/Cache/CacheTags.php` (constantes `page:{slug}`)
+2. `InvalidateCacheOnPublish` : à `ContentPublished`, invalide les tags Redis (no-op si Redis down)
+3. Câblage dans `config/services.yaml` (autoconfigure événements)
 
-### `4)` Cache Redis : admin + full-page public
+### `4)` Cache Redis en décorateur, fallback BDD
 
-> Un seul Redis o2switch pour les deux. La preview (draft) n'est jamais servie depuis le cache public.
+> Pattern Décorateur : le site fonctionne sans Redis.
 
-1. `RenderCache` : sert le HTML `published` de `SiteController` depuis Redis, clés taggées `page:{slug}`
-2. `cache.app` sur Redis avec préfixe ; invalidation par tags à chaque publication (phase 8) et à chaque autosave pour la preview
-3. La preview reste calculée à la volée (clé séparée `preview:{id}:{md5(draft)}`)
+1. `CacheAsideSiteRenderer` (Infrastructure) : lit la BDD, écrit le cache
+2. `RedisCachedSiteRenderer` : décorateur au-dessus, try/catch Redis → fallback sur le décoré si Redis down
+3. Le contrôleur public appelle toujours l'interface (jamais Redis en direct)
+4. `cache.app` sur Redis avec préfixe ; preview jamais servie depuis le cache public
 
 ## Test acceptance criteria
 
 | Task | Acceptance criteria |
 | --- | --- |
-| 1 | `/admin/preview/accueil` rend le contenu brouillon ; inaccessible sans login |
-| 2 | Après autosave, l'iframe affiche la modification sans clic manuel |
-| 3 | Chaque autosave crée une ContentVersion ; restaurer une version ramène le contenu exact |
-| 4 | Après invalidation du tag `page:accueil`, `GET /` recalcule depuis la BDD (pas de HTML périmé servi) |
+| 1 | `/admin/preview/accueil` rend le brouillon ; inaccessible sans login ; iframe refresh auto après autosave |
+| 2 | Chaque autosave/publication crée une `ContentVersion` ; restore ramène le contenu exact |
+| 3 | `ContentPublished` déclenche l'invalidation des tags Redis ; noms d'événements/tags via constantes |
+| 4 | Redis up : `GET /` servi depuis le cache ; Redis down : `GET /` répond depuis la BDD sans erreur |

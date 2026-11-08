@@ -2,7 +2,7 @@
 status: pending
 ---
 
-# Instruction: Socle Symfony 7 + environnement o2switch (un seul dépôt git, MariaDB, Redis)
+# Instruction: Socle via Symfony CLI + environnement local Docker + CI GitHub Actions
 
 ## Architecture projection
 
@@ -10,73 +10,91 @@ status: pending
 
 ```txt
 .
-├── ✅ .gitignore
 ├── ✅ .env
 ├── ✅ .env.example
+├── ✅ AGENTS.md
+├── ✅ INSTALL.md
 ├── ✅ README.md
 ├── ✅ bin/console
+├── ✅ compose.yaml
 ├── ✅ composer.json
 ├── ✅ config/packages/cache.yaml
 ├── ✅ config/packages/doctrine.yaml
-├── ✅ config/routes.yaml
+├── ✅ scripts/build-assets.mjs
+├── ✅ src/Application/.gitkeep
 ├── ✅ src/Command/HealthCommand.php
-└── ✅ src/Controller/HealthController.php
+├── ✅ src/Controller/HealthController.php
+├── ✅ src/Domain/.gitkeep
+├── ✅ src/Infrastructure/.gitkeep
+├── ✅ src/Presentation/.gitkeep
+├── ✅ .github/workflows/ci.yaml
+├── ✅ .github/workflows/health.yaml
+└── ✅ .github/workflows/security.yaml
 ```
 
 ## Test Scope
 
 | Scenario | Action | Observable outcome | Actor |
 | --- | --- | --- | --- |
-| Setup | Créer la base MariaDB + utilisateur via cPanel o2switch, remplir `.env.local` (DATABASE_URL, REDIS_URL) | Base créée, `.env.local` présent et non commité | system |
-| Happy path | `php bin/console app:health` puis ouvrir `/health` sur `admin.…` | JSON 200 avec `bdd: ok`, `redis: ok`, version PHP | cli, browser |
-| Edge case | DATABASE_URL avec un mauvais mot de passe | `app:health` échoue avec une erreur claire | cli |
-| Teardown | Supprimer `.env.local` de test, réinitialiser la base | Retour à l'état initial, aucun secret persisté | system |
+| Setup | `brew install php` + Symfony CLI + LSP standalone, `docker compose up -d`, remplir `.env.local` | Outils installés, conteneurs mariadb/redis/devmailer up | system |
+| Happy path | `symfony new` (pas composer create-project), `symfony server:start`, ouvrir `/health` | Projet Symfony créé, `/health` répond 200 avec `bdd: ok`, `redis: ok` | cli, browser |
+| Edge case | `docker compose stop redis` puis `/health` | Réponse 200 avec `redis: down` — le site fonctionne sans Redis | browser |
+| Teardown | `docker compose down`, `symfony server:stop` | Environnement local arrêté proprement | system |
 
 ## Tasks to do
 
-### `1)` Créer le dépôt git unique et le squelette Symfony
+### `1)` Toolchain locale
 
-> Un seul repo pour code + config ; le contenu vivra en BDD, pas de submodule.
+> PHP via Homebrew, Symfony CLI, LSP standalone branché à OpenCode.
 
-1. `git init` + remote GitHub privé `timothee-consulting`
-2. `composer create-project symfony/website-skeleton` (Symfony 7 LTS) à la racine du repo
-3. Commit initial
+1. `brew install php@8.4` (ou php), vérifier `php -v` = 8.4
+2. Installer Symfony CLI, vérifier `symfony -v`
+3. Installer Symfony LSP standalone et le déclarer comme LSP externe d'OpenCode
 
-### `2)` Configurer MariaDB et Redis
+### `2)` Créer le projet avec Symfony CLI
 
-> o2switch fournit les deux nativement ; rien à installer côté serveur.
+> Jamais `composer create-project`.
 
-1. Créer la base + l'utilisateur MariaDB dans cPanel, noter le host
-2. `DATABASE_URL` dans `.env.local` ; `cache.app` sur Redis dans `config/packages/cache.yaml` + `REDIS_URL`
-3. `.env.local` dans `.gitignore`, `.env.example` commité avec des placeholders
+1. `symfony new timothee-consulting.fr --webapp` dans le repo (ou à la racine si vide) — Symfony 7.4 LTS
+2. Poser la structure DDD : `src/Domain`, `src/Application`, `src/Infrastructure`, `src/Presentation` (+ .gitkeep)
+3. `composer.json` propre, branche `main`, dépôt public MIT déjà en place
 
-### `3)` Health check
+### `3)` Environnement local Docker
 
-> Prouver que PHP, la BDD et Redis répondent avant toute fonctionnalité.
+> `compose.yaml` aux conventions Symfony, services mariadb + redis + devmailer.
 
-1. `HealthCommand` (`app:health`) : ping Doctrine + ping Redis + `phpversion()`
-2. `HealthController` : route `/health` en JSON
+1. `compose.yaml` : services `database` (mariadb), `redis`, `devmailer` (ports et volumes standard)
+2. `.env.local` : `DATABASE_URL` et `REDIS_URL` vers les conteneurs ; `.env.example` commité
+3. `docker compose up -d` → vérifier les 3 conteneurs
 
-### `4)` Déploiement initial sur o2switch
+### `4)` Health check
 
-> Le dashboard vivra sur le sous-domaine `admin.timothee-consulting.fr`.
+> Prouver PHP, MariaDB, Redis (optionnel).
 
-1. Cloner le repo en SSH sur o2switch, `composer install --no-dev`
-2. Pointer `admin.…` sur `public/` (document root), activer SSL Let's Encrypt via cPanel
-3. Droits en écriture sur `var/` et `public/uploads/`
+1. `HealthCommand` (`app:health`) : ping Doctrine, ping Redis avec try/catch (jamais de 500 si Redis down), `phpversion()`
+2. `HealthController` : `GET /health` en JSON
 
-### `5)` README de déploiement
+### `5)` CI GitHub Actions
 
-> Un tiers doit pouvoir redéployer from scratch.
+> Trois workflows.
 
-1. Procédure : création BDD cPanel, `.env.local`, composer install, droits, cron
+1. `.github/workflows/ci.yaml` : sur push/PR — lint yaml/twig/container + phpunit
+2. `.github/workflows/security.yaml` : cron hebdomadaire — `symfony security:check`
+3. `.github/workflows/health.yaml` : cron quotidien 3h00 — curl `https://admin.timothee-consulting.fr/health`, alerte si non-200
+
+### `6)` README + INSTALL.md
+
+> Setup local rejouable from scratch.
+
+1. Procédure : brew (php, symfony cli, lsp), docker compose up, .env.local, `symfony server:start`, `composer install`, migrations
 
 ## Test acceptance criteria
 
 | Task | Acceptance criteria |
 | --- | --- |
-| 1 | Le repo existe avec un commit initial contenant le squelette Symfony |
-| 2 | `doctrine:query:sql "SELECT 1"` et le ping Redis répondent OK depuis le serveur |
-| 3 | `/health` renvoie 200 avec `bdd: ok` et `redis: ok` |
-| 4 | `https://admin.timothee-consulting.fr/health` répond en HTTPS depuis Internet |
-| 5 | Le README permet de redéployer le projet en suivant uniquement ses étapes |
+| 1 | `php -v` affiche 8.4, `symfony -v` OK, LSP Symfony visible dans la config LSP d'OpenCode |
+| 2 | Le squelette Symfony 7.4 est à la racine avec les 4 dossiers DDD sous `src/` |
+| 3 | `docker compose ps` montre database, redis, devmailer ; devmailer accessible sur son port web |
+| 4 | `/health` = 200 JSON avec `bdd: ok`, `redis: ok` ; redis stoppé → 200 avec `redis: down` |
+| 5 | Les 3 workflows existent et sont visibles dans l'onglet Actions de GitHub |
+| 6 | Un tiers suit INSTALL.md et obtient un `/health` 200 en local |

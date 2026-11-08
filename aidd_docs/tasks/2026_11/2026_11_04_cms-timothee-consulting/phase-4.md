@@ -2,7 +2,7 @@
 status: pending
 ---
 
-# Instruction: Front public dynamique (Twig) + Turbo + formulaire de contact + moteur de rendu partagé
+# Instruction: Front public multi-pages (Twig) + assets Stimulus/TypeScript + Turbo + formulaire de contact
 
 ## Architecture projection
 
@@ -11,7 +11,6 @@ status: pending
 ```txt
 .
 ├── ✅ templates/site/base.html.twig
-├── ✅ templates/site/home.html.twig
 ├── ✅ templates/site/page.html.twig
 ├── ✅ templates/site/_partials/hero.html.twig
 ├── ✅ templates/site/_partials/parcours.html.twig
@@ -19,12 +18,13 @@ status: pending
 ├── ✅ templates/site/_partials/projets.html.twig
 ├── ✅ templates/site/_partials/contact.html.twig
 ├── ✅ templates/site/contact/stream.html.twig
-├── ✅ src/Service/SiteRenderer.php
-├── ✅ src/Controller/SiteController.php
-├── ✅ src/Controller/ContactController.php
-├── ✅ src/Form/ContactType.php
-├── ✅ config/packages/mailer.yaml
-├── ✅ assets/site.js
+├── ✅ src/Application/Service/SiteRenderer.php
+├── ✅ src/Presentation/Controller/SiteController.php
+├── ✅ src/Presentation/Controller/ContactController.php
+├── ✅ src/Presentation/Form/ContactType.php
+├── ✅ assets/site.ts
+├── ✅ assets/controllers/contact_controller.ts
+├── ✅ scripts/build-assets.mjs
 ├── ✅ public/assets/site.css
 └── ✅ public/assets/favicon.svg
 ```
@@ -33,84 +33,77 @@ status: pending
 
 | Scenario | Action | Observable outcome | Actor |
 | --- | --- | --- | --- |
-| Setup | Contenu seedé (phase 2), serveur lancé | Page accueil présente en BDD | cli |
-| Happy path | Ouvrir `/` ; soumettre le formulaire de contact valide | HTML complet des 5 sections ; Turbo Stream "Message envoyé" + mail reçu | browser |
-| Edge case | Slug inconnu ; contact avec honeypot rempli | 404 propre ; aucun mail envoyé, réponse 200 neutre | browser |
-| Teardown | Vider le cache de rendu | Le rendu est recalculé depuis la BDD | system |
+| Setup | Contenu seedé (phase 2), serveur local lancé | Page accueil en BDD | cli |
+| Happy path | Ouvrir `/` et `/accueil` ; soumettre le contact valide | HTML complet des sections ; Turbo Stream "Message envoyé" + mail dans DevMailer | browser |
+| Edge case | `/{slug}` inconnu ou brouillon ; contact avec honeypot rempli | 404 propre ; aucun mail, réponse 200 neutre | browser |
+| Teardown | `node scripts/build-assets.mjs` propre | `public/build/` régénéré | system |
 
 ## Wireframe
 
 ```txt
 ┌───────────────────────────────────────────────┐
-│ (1) Header : T|M · nav (Parcours, Skills,     │
+│ (1) Header : T|M · nav (Accueil, À propos,    │
 │     Projets, Contact) — Turbo Drive actif     │
 ├───────────────────────────────────────────────┤
-│ (2) Hero : accroche + photo + CTA             │
+│ (2) Contenu de la page courante :             │
+│     blocs rendus (hero, parcours, …)         │
 ├───────────────────────────────────────────────┤
-│ (3) Parcours : frise chronologique            │
-├───────────────────────────────────────────────┤
-│ (4) Compétences : grille de cartes            │
-├───────────────────────────────────────────────┤
-│ (5) Projets : cartes image + description      │
-├───────────────────────────────────────────────┤
-│ (6) Contact : (7) formulaire nom·email·msg    │
-│ · (8) footer : mentions, année               │
+│ (3) Contact : (4) formulaire nom·email·msg    │
+│ · (5) footer : mentions, année               │
 └───────────────────────────────────────────────┘
 ```
 
-1. Header fixe : logo + navigation ancrée, interceptée par Turbo Drive.
-2. Hero : accroche, photo, citation, CTA "Me contacter".
-3. Parcours : frise chronologique des expériences.
-4. Compétences : cartes (pilotage, ERP, formation).
-5. Projets : cartes avec image, description, lien.
-6. Contact : email, téléphone, réseaux.
-7. Formulaire : nom, email, message + honeypot caché.
-8. Footer : mentions, année.
+1. Header fixe multi-pages : logo + nav, interceptée par Turbo Drive.
+2. Corps de la page : les blocs publiés, rendus par le partial adapté.
+3. Section contact avec formulaire.
+4. Formulaire : nom, email, message + honeypot caché + CSRF.
+5. Footer : mentions, année.
 
 ## Tasks to do
 
-### `1)` Design des templates public
+### `1)` Moteur de rendu unique
 
-> Reprendre l'esprit de la preprod WordPress, en propre et responsive.
+> Public, preview et admin partagent ce moteur Twig.
 
-1. `base.html.twig` : head (meta, SEO, favicon), header nav, footer, chargement de `site.js`
-2. `home.html.twig` / `page.html.twig` + partials par type de bloc
-3. `public/assets/site.css` : design épuré, responsive mobile
+1. `SiteRenderer::render(Page $page, bool $useDraft)` : choisit draft/published, rend `site/page.html.twig` → HTML
+2. Rendu des blocs via partials `_partials/{type}.html.twig`
 
-### `2)` Moteur de rendu unique
+### `2)` Contrôleur public multi-pages
 
-> La preview admin et le public utilisent CE moteur : preview = rendu exact.
+> Le site n'est pas une one-page : `/` = accueil, `/{slug}` = page publiée.
 
-1. `SiteRenderer::render(Page $page, bool $useDraft)` : choisit draft ou published, rend le template Twig → string HTML
-2. Gestion des médias : chemins `/uploads/...`
+1. `SiteController` : `/` et `/{slug}` → pages `published` uniquement, 404 sinon
+2. ETag / Cache-Control pour le cache full-page (phase 7)
 
-### `3)` Contrôleur public
+### `3)` Templates et design
 
-> Le site public est servi en dynamique par Symfony (cache Redis branché en phase 7).
+> Multi-pages, inspiré de emonin.dev, responsive.
 
-1. `SiteController` : `/` et `/{slug}` rendent les pages `published` via SiteRenderer, 404 si brouillon ou inconnu
-2. Réponses avec ETag / Cache-Control pour le cache full-page
+1. `base.html.twig` : head (SEO, favicon), header nav multi-pages, footer
+2. `page.html.twig` + partials par type de bloc
+3. `public/assets/site.css` : variables CSS (tokens), design épuré, responsive 360 px
 
-### `4)` Formulaire de contact sécurisé
+### `4)` Assets Stimulus + TypeScript
+
+> Uniquement Stimulus et TS, compilés par esbuild.
+
+1. `scripts/build-assets.mjs` : esbuild compile `assets/*.ts` → `public/build/`
+2. AssetMapper + importmap pour Stimulus/Turbo ; `assets/site.ts` importe Turbo Drive
+3. Contrôleurs Stimulus écrits en TS (`assets/controllers/*.ts`)
+
+### `5)` Formulaire de contact sécurisé
 
 > Le public exécute du PHP : surface minimale.
 
-1. `ContactType` + `ContactController` : POST uniquement, CSRF, rate limiter (3/min), honeypot
-2. Envoi via Mailer (SMTP o2switch), réponse Turbo Stream "Message envoyé"
-
-### `5)` Turbo côté public
-
-> Navigation sans rechargement, zéro JS custom.
-
-1. `assets/site.js` : `import { Turbo } from '@hotwired/turbo'` servi via AssetMapper (importmap, pas de build Node)
-2. Turbo Drive actif sur `base.html.twig` ; Turbo Stream pour la réponse du contact
+1. `ContactType` + `ContactController` : POST seul, CSRF, rate limiter 3/min, honeypot
+2. Mail via Mailer (DevMailer local, SMTP o2switch prod), réponse Turbo Stream
 
 ## Test acceptance criteria
 
 | Task | Acceptance criteria |
 | --- | --- |
-| 1 | `/` affiche les 5 sections avec le contenu seedé, lisible à 360 px de large |
-| 2 | `SiteRenderer` avec `useDraft=true` reflète les modifs brouillon, `false` non |
-| 3 | `/{slug}` inconnu → 404 ; `/` rend la page published uniquement |
-| 4 | POST contact valide → Turbo Stream "Message envoyé" + mail reçu ; honeypot rempli → aucun mail |
-| 5 | Clic sur un lien interne → navigation Turbo (pas de rechargement complet de page) |
+| 1 | `SiteRenderer` avec `useDraft=true` reflète le brouillon, `false` non ; un bloc de chaque type rend sans erreur |
+| 2 | `/` et `/accueil` rendent la page publiée ; slug inconnu ou brouillon → 404 |
+| 3 | `node scripts/build-assets.mjs` produit `public/build/` ; navigation entre pages sans rechargement complet (Turbo) |
+| 4 | CSS chargé, lisible à 360 px, tokens en variables CSS |
+| 5 | POST contact valide → Turbo Stream "Message envoyé" + mail visible dans DevMailer ; honeypot rempli → aucun mail |

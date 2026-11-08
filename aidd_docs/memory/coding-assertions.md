@@ -12,6 +12,9 @@ Règles absolues (détails et exemples dans `architecture.md`) : DDD event-drive
 - **Jamais de rendu dupliqué** : un seul moteur Twig (public = preview = admin).
 - **Vérifier toute API/signature contre la doc officielle** avant de l'utiliser.
 - **Tests avant commit** : tout nouveau comportement a un test (unitaire pour Application/Domain, fonctionnel pour Presentation).
+- **Documentation du code : anglais simple, WHY jamais WHAT, et pas systématique.** On n'explique jamais ce que le code fait (le code le dit déjà), mais pourquoi il le fait — pour un lecteur français qui lit peu l'anglais. Une évidence n'a pas besoin de commentaire.
+  - ❌ `// renders the page as HTML` (WHAT — inutile)
+  - ✅ `// preview bypasses the cache: the editor must see the draft, not the published page` (WHY)
 
 ## Before commit
 

@@ -3,8 +3,8 @@
 ## Strategy
 
 - Tests unitaires et **tests d'architecture** avec **Pest** (https://pestphp.com/docs/arch-testing), pas PHPUnit brut.
-- Pest arch testing : règles d'architecture codées (ex. `src/Domain` ne dépend d'aucun namespace Symfony, Doctrine ou Infrastructure).
-- **On ne teste que la couche Domain, et seulement quand c'est nécessaire** : pas de tests systématiques sur toutes les couches.
+- Pest arch testing : règles d'architecture codées (ex. `src/Domain` ne dépend d'aucun namespace Symfony, Doctrine ou Infrastructure). Ces tests d'arch portent sur **toutes les couches**.
+- **Tests unitaires : couche Domain uniquement, et seulement quand c'est nécessaire.** Cette restriction ne s'applique pas aux tests d'architecture.
 
 ## Tools
 

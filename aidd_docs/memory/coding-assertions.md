@@ -16,21 +16,30 @@ Règles absolues (détails et exemples dans `architecture.md`) : DDD event-drive
   - ❌ `// renders the page as HTML` (WHAT — inutile)
   - ✅ `// preview bypasses the cache: the editor must see the draft, not the published page` (WHY)
 
+## Outillage qualité
+
+- **MagoPHP** pour le reste : `mago lint` (lint) et `mago fmt` (format) — l'exécuter avant chaque commit.
+- **PHPStan** pour les conventions PSR : `phpstan analyse` (niveau max + règles PSR).
+- **Pest** pour les tests (voir `testing.md`).
+
 ## Before commit
 
 | Order | Command | Checks |
 | ----- | ------- | ------ |
-| 1 | `php bin/console lint:yaml config/` | configuration valide |
-| 2 | `php bin/console lint:twig templates/` | templates valides |
-| 3 | `php bin/console lint:container` | conteneur compilable |
+| 1 | `mago lint` | lint PHP |
+| 2 | `mago fmt --check` | formatage |
+| 3 | `php bin/console lint:yaml config/` | configuration valide |
+| 4 | `php bin/console lint:twig templates/` | templates valides |
+| 5 | `php bin/console lint:container` | conteneur compilable |
 
 ## Before push
 
 | Order | Command | Checks |
 | ----- | ------- | ------ |
-| 1 | `vendor/bin/phpunit` | suite de tests verte |
-| 2 | `symfony security:check` | aucune vulnérabilité connue |
-| 3 | `node scripts/build-assets.mjs` | assets TypeScript compilés (esbuild) |
+| 1 | `vendor/bin/pest` | tests unit + arch verts |
+| 2 | `phpstan analyse` | conventions PSR respectées |
+| 3 | `symfony security:check` | aucune vulnérabilité connue |
+| 4 | `node scripts/build-assets.mjs` | assets TypeScript compilés (esbuild) |
 
 ## Behavior
 

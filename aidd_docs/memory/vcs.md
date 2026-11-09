@@ -16,7 +16,7 @@
 
 - Convention: conventional commits
 - Format: `type(scope): description`
-- Règles: impératif, minuscules, sujet ≤ 72 caractères, une concern par commit
+- Règles: message en **anglais**, impératif, minuscules, sujet ≤ 72 caractères, une concern par commit
 
 ## Commit Strategy
 

@@ -49,12 +49,15 @@ docker compose up -d
 docker compose ps            # tous les services up/healthy
 ```
 
-> Le nom de projet compose est fixé (`name: timothee-consulting-fr` dans
-> `compose.yaml`) : **tous les worktrees du dépôt partagent les mêmes conteneurs
-> et volumes**, il n'y a jamais un set de conteneurs par worktree. Pour passer
-> d'un worktree à l'autre : `docker compose down` dans l'ancien, `docker compose
-> up -d` dans le nouveau (le conteneur `app` est recréé avec le code du worktree
-> courant).
+> **Gestion auto des environnements par worktree** : le plugin OpenCode
+> user-level `docker-worktree-env` (`~/.config/opencode/plugins/`) s'active à la
+> création/destruction de chaque worktree contenant un `compose.yaml` :
+> création → `docker compose up -d` (nom de projet = nom du dossier worktree,
+> conteneurs/volumes isolés) ; destruction → backup des volumes en
+> `~/.local/share/opencode-docker-worktree-env/backups/` puis suppression des
+> conteneurs/volumes. Règle : un seul worktree « up » à la fois (ports 80/443
+> fixes), le plugin bloque le `up` sinon. Pour lancer manuellement :
+> `docker compose up -d` / `docker compose down` dans le worktree courant.
 
 DevMailer (mailpit) : interface web sur http://127.0.0.1:8025, SMTP sur 1025.
 

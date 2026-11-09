@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint-and-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup PHP 8.4
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+
+      - name: Install Composer dependencies
+        uses: ramsey/composer-install@v3
+
+      - name: Install Symfony CLI
+        run: |
+          curl -sS https://get.symfony.com/cli/installer | bash
+          echo "$HOME/.symfony/bin" >> "$GITHUB_PATH"
+
+      - name: Run Symfony LSP diagnostics (LSP embarqué de la CLI)
+        run: symfony lsp:check
+
+      - name: Lint YAML config
+        run: php bin/console lint:yaml config/ --parse-tags
+
+      - name: Lint Twig templates
+        run: php bin/console lint:twig templates/ --env=prod
+
+      - name: Lint container
+        run: php bin/console lint:container --env=prod
+
+      - name: Compile TypeScript assets (SWC, via sensiolabs/typescript-bundle)
+        run: php bin/console typescript:build
+
+      - name: Run tests
+        run: vendor/bin/phpunit

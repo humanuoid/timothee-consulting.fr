@@ -1,0 +1,20 @@
+name: Production health check
+
+on:
+  schedule:
+    # Every day at 03:00 UTC
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+jobs:
+  health:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping /health on the admin
+        run: |
+          status=$(curl -s -o /tmp/health.json -w '%{http_code}' https://admin.timothee-consulting.fr/health)
+          cat /tmp/health.json
+          if [ "$status" -ne 200 ]; then
+            echo "::error::/health returned HTTP $status"
+            exit 1
+          fi

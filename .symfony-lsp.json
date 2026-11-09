@@ -1,0 +1,4 @@
+{
+    "version": 1,
+    "kernel": "App\\Infrastructure\\Kernel"
+}

@@ -1,6 +1,8 @@
-# Nom de projet compose fixe : tous les worktrees du dépôt partagent les mêmes
-# conteneurs/volumes (évite un set de conteneurs par worktree).
-name: timothee-consulting-fr
+# Pas de `name:` fixe ici : le nom de projet compose est dérivé du dossier du
+# worktree, donc chaque worktree a ses propres conteneurs/volumes. Le démarrage
+# (up) et la destruction (backup volumes + down) sont gérés automatiquement par
+# le plugin OpenCode user-level `docker-worktree-env`
+# (~/.config/opencode/plugins/docker-worktree-env).
 
 services:
   app:

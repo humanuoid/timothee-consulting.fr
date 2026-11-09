@@ -1,0 +1,12 @@
+{
+    global {
+        server_name localhost
+    }
+}
+
+:80 {
+    root * /app/public
+    php
+    encode gzip
+    file_server
+}

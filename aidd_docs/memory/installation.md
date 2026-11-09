@@ -49,15 +49,14 @@ docker compose up -d
 docker compose ps            # tous les services up/healthy
 ```
 
-> **Gestion auto des environnements par worktree** : le plugin OpenCode
-> user-level `docker-worktree-env` (`~/.config/opencode/plugins/`) s'active à la
-> création/destruction de chaque worktree contenant un `compose.yaml` :
-> création → `docker compose up -d` (nom de projet = nom du dossier worktree,
-> conteneurs/volumes isolés) ; destruction → backup des volumes en
-> `~/.local/share/opencode-docker-worktree-env/backups/` puis suppression des
-> conteneurs/volumes. Règle : un seul worktree « up » à la fois (ports 80/443
-> fixes), le plugin bloque le `up` sinon. Pour lancer manuellement :
-> `docker compose up -d` / `docker compose down` dans le worktree courant.
+> **Gestion auto des environnements par worktree** (natif OpenChamber, sans
+> plugin) : dans les réglages du projet (Worktrees), `setup-worktree` =
+> `docker compose up -d` (lancé à la création du worktree, avant la session) et
+> `teardownWorktree` = `docker compose down -v` (à la suppression du worktree).
+> Le nom de projet compose = nom du dossier worktree (pas de `name:` fixe) :
+> chaque worktree a ses propres conteneurs/volumes. Pas de backup de volumes en
+> local (données jetables, fixtures rechargeables via `doctrine:fixtures:load`).
+> Règle : un seul worktree « up » à la fois (ports 80/443 fixes).
 
 DevMailer (mailpit) : interface web sur http://127.0.0.1:8025, SMTP sur 1025.
 

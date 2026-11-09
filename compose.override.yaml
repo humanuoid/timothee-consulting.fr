@@ -1,0 +1,27 @@
+
+# Surcharge locale standard de Symfony (poste de dev uniquement) :
+# ports exposés + devmailer. Non déployé en prod.
+
+services:
+  app:
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+
+  database:
+    ports:
+      - "3306"
+
+  redis:
+    ports:
+      - "6379"
+
+  devmailer:
+    image: axllent/mailpit:latest
+    ports:
+      - "1025"
+      - "8025"
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: 1
+      MP_SMTP_AUTH_ALLOW_INSECURE: 1

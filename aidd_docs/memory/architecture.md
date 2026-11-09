@@ -5,7 +5,7 @@
 - PHP + Symfony LTS, installé via Symfony CLI (pas de `composer create-project`)
 - MariaDB via Doctrine ORM (entités + migrations), Redis comme cache/read model optionnel
 - Twig : un seul moteur de rendu, partagé entre site public, preview admin et dashboard
-- Symfony UX (Turbo, Stimulus, Live Components) ; assets JS en TypeScript compilés par esbuild, contrôleurs Stimulus écrits en TS
+- Symfony UX (Turbo, Stimulus, Live Components) ; assets JS en TypeScript compilés par SWC via `sensiolabs/typescript-bundle` (zéro Node), servis par l'asset mapper ; contrôleurs Stimulus écrits en TS
 - Hébergement o2switch (mutualisé) ; déploiement par SSH, uniquement depuis la machine du propriétaire
 
 ## Structure DDD et règle de dépendance
@@ -31,7 +31,7 @@ Presentation ──► Application ──► Domain ◄── Infrastructure
 | Contrôleur, Live Component, Form Type, Command console | `src/Presentation/...` |
 | Templates Twig du site public | `templates/site/` |
 | Templates Twig du dashboard | `templates/admin/` |
-| Assets TS + contrôleurs Stimulus | `assets/` → esbuild → `public/build/` |
+| Assets TS + contrôleurs Stimulus | `assets/` → SWC (typescript-bundle) → servi par l'asset mapper |
 
 Note pragmatique : les entités Domain portent les attributs ORM directement (pas de mapping XML séparé — KISS).
 

@@ -12,7 +12,7 @@
 
 ## Environments
 
-- local : `docker compose up -d` (MariaDB, Redis, DevMailer) + `symfony server:start` → http://127.0.0.1:8000
+- local : `docker compose up -d` (app FrankenPHP, MariaDB, Redis, DevMailer, watch TS) → https://localhost
 - prod public : `https://timothee-consulting.fr` (site servi par Symfony)
 - prod admin : `https://admin.timothee-consulting.fr` (dashboard)
 

@@ -1,0 +1,68 @@
+# Nom de projet compose fixe : tous les worktrees du dépôt partagent les mêmes
+# conteneurs/volumes (évite un set de conteneurs par worktree).
+name: timothee-consulting-fr
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: .docker/frankenphp/Dockerfile
+    volumes:
+      - ./:/app
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      - DATABASE_URL=mysql://app:!ChangeMe!@database:3306/app?serverVersion=11.4.13-MariaDB&charset=utf8mb4
+      - REDIS_URL=redis://redis:6379
+      - MAILER_DSN=smtp://devmailer:1025
+      - APP_ENV=dev
+      - APP_DEBUG=1
+    depends_on:
+      database:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    tty: true
+
+  # Recompile les assets TS (SWC) à chaque changement, servi ensuite par l'asset mapper
+  typescript:
+    build:
+      context: .
+      dockerfile: .docker/frankenphp/Dockerfile
+    volumes:
+      - ./:/app
+    working_dir: /app
+    command: php bin/console typescript:build --watch
+    # pas de serveur web dans ce conteneur : on neutralise le HEALTHCHECK de l'image
+    healthcheck:
+      test: ["NONE"]
+
+  database:
+    image: mariadb:11.4
+    environment:
+      MARIADB_DATABASE: ${MARIADB_DATABASE:-app}
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD:-!ChangeMe!}
+      MARIADB_USER: ${MARIADB_USER:-app}
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD:-!ChangeMe!}
+    volumes:
+      - database_data:/var/lib/mysql:rw
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  redis:
+    image: redis:8-alpine
+    volumes:
+      - redis_data:/data:rw
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 5s
+      retries: 5
+
+volumes:
+  caddy_data:
+  caddy_config:
+  database_data:
+  redis_data:

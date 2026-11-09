@@ -3,7 +3,7 @@
 ## Setup
 
 - MariaDB (o2switch en prod, conteneur Docker en local), accédée via Doctrine ORM, config dans `config/packages/doctrine.yaml`
-- DSN dans `.env.local` (jamais commité)
+- DSN dans `.env` (hôte `database` = service compose, résolu dans le réseau docker) ; overrides persos dans `.env.local` (jamais commité)
 
 ## Main entities
 

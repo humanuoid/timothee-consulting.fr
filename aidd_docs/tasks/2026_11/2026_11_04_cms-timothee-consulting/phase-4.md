@@ -24,7 +24,7 @@ status: pending
 ├── ✅ src/Presentation/Form/ContactType.php
 ├── ✅ assets/site.ts
 ├── ✅ assets/controllers/contact_controller.ts
-├── ✅ scripts/build-assets.mjs
+├── ✅ service compose `typescript` (watch SWC, posé en phase 1)
 ├── ✅ public/assets/site.css
 └── ✅ public/assets/favicon.svg
 ```
@@ -36,7 +36,7 @@ status: pending
 | Setup | Contenu seedé (phase 2), serveur local lancé | Page accueil en BDD | cli |
 | Happy path | Ouvrir `/` et `/accueil` ; soumettre le contact valide | HTML complet des sections ; Turbo Stream "Message envoyé" + mail dans DevMailer | browser |
 | Edge case | `/{slug}` inconnu ou brouillon ; contact avec honeypot rempli | 404 propre ; aucun mail, réponse 200 neutre | browser |
-| Teardown | `node scripts/build-assets.mjs` propre | `public/build/` régénéré | system |
+| Teardown | `symfony console asset-map:compile` propre | `public/assets/` régénéré | system |
 
 ## Wireframe
 
@@ -85,9 +85,9 @@ status: pending
 
 ### `4)` Assets Stimulus + TypeScript
 
-> Uniquement Stimulus et TS, compilés par esbuild.
+> Uniquement Stimulus et TS, compilés par SWC via l'asset mapper (sensiolabs/typescript-bundle, zéro Node).
 
-1. `scripts/build-assets.mjs` : esbuild compile `assets/*.ts` → `public/build/`
+1. Compilation TS : `symfony console typescript:build` (watch actif en dev via le service compose `typescript`)
 2. AssetMapper + importmap pour Stimulus/Turbo ; `assets/site.ts` importe Turbo Drive
 3. Contrôleurs Stimulus écrits en TS (`assets/controllers/*.ts`)
 
@@ -104,6 +104,6 @@ status: pending
 | --- | --- |
 | 1 | `SiteRenderer` avec `useDraft=true` reflète le brouillon, `false` non ; un bloc de chaque type rend sans erreur |
 | 2 | `/` et `/accueil` rendent la page publiée ; slug inconnu ou brouillon → 404 |
-| 3 | `node scripts/build-assets.mjs` produit `public/build/` ; navigation entre pages sans rechargement complet (Turbo) |
+| 3 | `symfony console typescript:build` compile `assets/**/*.ts` ; navigation entre pages sans rechargement complet (Turbo) |
 | 4 | CSS chargé, lisible à 360 px, tokens en variables CSS |
 | 5 | POST contact valide → Turbo Stream "Message envoyé" + mail visible dans DevMailer ; honeypot rempli → aucun mail |

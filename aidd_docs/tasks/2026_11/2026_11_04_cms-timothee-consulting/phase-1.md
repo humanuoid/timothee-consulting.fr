@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 ---
 
 # Instruction: Socle via Symfony CLI + environnement local Docker + CI GitHub Actions
@@ -20,7 +20,9 @@ status: pending
 ├── ✅ composer.json
 ├── ✅ config/packages/cache.yaml
 ├── ✅ config/packages/doctrine.yaml
-├── ✅ scripts/build-assets.mjs
+├── ✅ config/packages/sensiolabs_typescript.yaml
+├── ✅ .docker/frankenphp/Dockerfile
+├── ✅ .docker/frankenphp/Caddyfile
 ├── ✅ src/Application/.gitkeep
 ├── ✅ src/Command/HealthCommand.php
 ├── ✅ src/Controller/HealthController.php
@@ -36,10 +38,10 @@ status: pending
 
 | Scenario | Action | Observable outcome | Actor |
 | --- | --- | --- | --- |
-| Setup | `brew install php` + Symfony CLI + LSP standalone, `docker compose up -d`, remplir `.env.local` | Outils installés, conteneurs mariadb/redis/devmailer up | system |
-| Happy path | `symfony new` (pas composer create-project), `symfony server:start`, ouvrir `/health` | Projet Symfony créé, `/health` répond 200 avec `bdd: ok`, `redis: ok` | cli, browser |
+| Setup | `brew install php@8.4` + Symfony CLI + LSP standalone, `docker compose up -d` | Outils installés, conteneurs frankenphp/mariadb/redis/devmailer/typescript up | system |
+| Happy path | `symfony new` (pas composer create-project), `docker compose up -d`, ouvrir `https://localhost/health` | Projet Symfony créé, `/health` répond 200 avec `bdd: ok`, `redis: ok` | cli, browser |
 | Edge case | `docker compose stop redis` puis `/health` | Réponse 200 avec `redis: down` — le site fonctionne sans Redis | browser |
-| Teardown | `docker compose down`, `symfony server:stop` | Environnement local arrêté proprement | system |
+| Teardown | `docker compose down` | Environnement local arrêté proprement | system |
 
 ## Tasks to do
 
@@ -61,11 +63,11 @@ status: pending
 
 ### `3)` Environnement local Docker
 
-> `compose.yaml` aux conventions Symfony, services mariadb + redis + devmailer.
+> `compose.yaml` aux conventions Symfony : services `app` (image du projet `.docker/frankenphp/Dockerfile`), `typescript` (watch SWC), `database` (mariadb), `redis` ; `compose.override.yaml` publie les ports 80/443 + `devmailer`.
 
-1. `compose.yaml` : services `database` (mariadb), `redis`, `devmailer` (ports et volumes standard)
-2. `.env.local` : `DATABASE_URL` et `REDIS_URL` vers les conteneurs ; `.env.example` commité
-3. `docker compose up -d` → vérifier les 3 conteneurs
+1. `compose.yaml` + `compose.override.yaml` + `.docker/frankenphp/{Dockerfile,Caddyfile}`
+2. `.env` : `DATABASE_URL` et `REDIS_URL` vers les services compose (résolus dans le réseau docker) ; `.env.example` commité
+3. `docker compose up -d` → vérifier les 5 conteneurs
 
 ### `4)` Health check
 
@@ -86,7 +88,7 @@ status: pending
 
 > Setup local rejouable from scratch.
 
-1. Procédure : brew (php, symfony cli, lsp), docker compose up, .env.local, `symfony server:start`, `composer install`, migrations
+1. Procédure : brew (php@8.4, symfony cli, lsp), docker compose up, `composer install`, migrations — doc vivante dans `aidd_docs/memory/installation.md`
 
 ## Test acceptance criteria
 

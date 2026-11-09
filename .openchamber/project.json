@@ -1,0 +1,9 @@
+{
+  "version": 1,
+  "setupWorktree": [
+    "docker compose up -d"
+  ],
+  "teardownWorktree": [
+    "docker compose down -v"
+  ]
+}

@@ -1,0 +1,14 @@
+# Graphify ignore — bruit hors graphe de connaissances
+vendor/
+var/
+node_modules/
+public/assets/
+public/bundles/
+assets/vendor/
+.phpunit.cache/
+.graphify-out-cache/
+graphify-out/
+*.log
+.env
+.env.local
+.env.*.local

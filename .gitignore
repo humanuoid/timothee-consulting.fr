@@ -19,4 +19,5 @@
 /.env
 /.phpunit.result.cache
 /public/uploads/
+/graphify-out/
 *.log

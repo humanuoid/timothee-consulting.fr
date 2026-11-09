@@ -1,0 +1,5 @@
+# Compile les fichiers TS de assets/ (dont assets/controllers/ pour Stimulus)
+# via SWC, servis ensuite par l'asset mapper. Zéro Node requis.
+sensiolabs_typescript:
+    source_dir:
+        - '%kernel.project_dir%/assets'

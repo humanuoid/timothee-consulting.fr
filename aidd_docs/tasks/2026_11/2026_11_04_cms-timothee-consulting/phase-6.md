@@ -70,7 +70,7 @@ status: pending
 
 > WYSIWYG léger, pas un textarea brut.
 
-1. Éditeur riche (TipTap via build esbuild) pour les blocs `richtext`, contenu en JSON
+1. Éditeur riche (TipTap via importmap asset mapper, zéro build Node) pour les blocs `richtext`, contenu en JSON
 2. HTML nettoyé au rendu côté `SiteRenderer`
 
 ### `3)` Autosave en TypeScript

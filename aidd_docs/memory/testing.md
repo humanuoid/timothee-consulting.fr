@@ -24,6 +24,6 @@
 
 ## Browser QA
 
-- Entry: `docker compose up -d` puis `symfony server:start` → http://127.0.0.1:8000
+- Entry: `docker compose up -d` → https://localhost (conteneur FrankenPHP `app`)
 - Auth: compte éditeur de test chargé par fixtures
 - State: fixtures rechargeables via `doctrine:fixtures:load`

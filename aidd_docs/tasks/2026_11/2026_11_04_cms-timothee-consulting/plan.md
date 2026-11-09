@@ -5,7 +5,7 @@ status: pending
 
 # Plan: CMS Symfony DDD + site public dynamique caché (Redis) pour le portfolio Timothée Consulting
 
-Source: Conversation OpenChamber 2026-11-04 → 2026-11-08 (session courante, répertoire `/Users/emmanuel/Coding/timothee-consulting.fr`). Spécifications verrouillées par l'utilisateur le 2026-11-08 : stack PHP 8.4 + Symfony 7.4 LTS (installé via Symfony CLI, pas Composer) + MariaDB 11.4.13 + Redis 8 (o2switch) ; Symfony LSP standalone branché comme LSP à OpenCode ; dashboard protégé par TOTP + rate limiter + reset password ; GitHub Actions (security check Symfony CLI hebdo, health prod quotidien 3h00) ; env local = `symfony server` + Docker compose (mariadb, redis, devmailer) ; déploiement UNIQUEMENT par SSH depuis la machine du propriétaire via un CLI Go (push git vers repo bare o2switch + hook post-receive), pas de rsync, pas de clone GitHub depuis o2switch, pas de cron o2switch ; AUCUN import WordPress ; Doctrine Migrations ordonnées par année/mois ; admin hybride EasyAdminBundle (CRUD) + custom Symfony UX (éditeur/preview) ; site multi-pages (inspi emonin.dev) ; assets JS uniquement Stimulus + TypeScript ; le site doit fonctionner sans Redis ; architecture DDD event-driven (pas de CQRS systématique), SOLID/KISS/DRY, patterns Constant et Décorateur — le tout consigné dans `aidd_docs/memory/` (banque projet) et `AGENTS.md`.
+Source: Conversation OpenChamber 2026-11-04 → 2026-11-08 (session courante, répertoire `/Users/emmanuel/Coding/timothee-consulting.fr`). Spécifications verrouillées par l'utilisateur le 2026-11-08 : stack PHP 8.4 + Symfony 7.4 LTS (installé via Symfony CLI, pas Composer) + MariaDB 11.4.13 + Redis 8 (o2switch) ; Symfony LSP standalone branché comme LSP à OpenCode ; dashboard protégé par TOTP + rate limiter + reset password ; GitHub Actions (security check Symfony CLI hebdo, health prod quotidien 3h00) ; env local = Docker compose seul (FrankenPHP + mariadb + redis + devmailer + watch TS, MAJ 2026-11-09 : plus de `symfony server`) ; déploiement UNIQUEMENT par SSH depuis la machine du propriétaire via un CLI Go (push git vers repo bare o2switch + hook post-receive), pas de rsync, pas de clone GitHub depuis o2switch, pas de cron o2switch ; AUCUN import WordPress ; Doctrine Migrations ordonnées par année/mois ; admin hybride EasyAdminBundle (CRUD) + custom Symfony UX (éditeur/preview) ; site multi-pages (inspi emonin.dev) ; assets JS uniquement Stimulus + TypeScript ; le site doit fonctionner sans Redis ; architecture DDD event-driven (pas de CQRS systématique), SOLID/KISS/DRY, patterns Constant et Décorateur — le tout consigné dans `aidd_docs/memory/` (banque projet) et `AGENTS.md`.
 
 ## Phases
 
@@ -26,8 +26,8 @@ Source: Conversation OpenChamber 2026-11-04 → 2026-11-08 (session courante, r�
 | --- | --------------- |
 | https://ngandu.dev/fr/blog/symfony-clean-architecture-ddd | Clean architecture + DDD en Symfony (structure Domain/Application/Infrastructure/Presentation) |
 | https://openclassrooms.com (parcours design patterns) | Design patterns Constant et Décorateur retenus |
-| https://symfony.com/doc/current/setup.html | Installation via Symfony CLI (`symfony new`), `symfony server`, LSP standalone |
-| https://symfony.com/doc/current/ux.html | Symfony UX (Turbo, Stimulus, Live Components), assets TS via esbuild + AssetMapper |
+| https://symfony.com/doc/current/setup.html | Installation via Symfony CLI (`symfony new`), LSP standalone |
+| https://symfony.com/doc/current/ux.html | Symfony UX (Turbo, Stimulus, Live Components), assets TS via sensiolabs/typescript-bundle (SWC) + AssetMapper |
 | https://symfony.com/doc/current/doctrine.html | Doctrine ORM, migrations, champs JSON |
 | https://symfony.com/doc/current/security.html + scheb/2fa | Sécurité : TOTP 2FA, rate limiter, reset password, rôles |
 | https://github.com/EasyCorp/EasyAdminBundle | EasyAdminBundle comme socle CRUD admin |
@@ -54,7 +54,7 @@ Source: Conversation OpenChamber 2026-11-04 → 2026-11-08 (session courante, r�
 | Pas de génération statique : le public est servi par Symfony | PHP natif toujours chaud sur o2switch ; publication instantanée |
 | Cache full-page Redis côté public, invalidé par événement à la publication | Perf au régime ; le public ne voit jamais un contenu périmé |
 | Preview = même moteur Twig que le public | La preview est exactement le rendu public (draft vs published) |
-| Assets JS uniquement Stimulus + TypeScript (esbuild) | Décision verrouillée |
+| Assets JS uniquement Stimulus + TypeScript (SWC via typescript-bundle, zéro Node — remplace esbuild, MAJ 2026-11-09) | Décision verrouillée |
 | Migrations Doctrine ordonnées par année et mois | `organize_migrations: BY_YEAR_AND_MONTH` |
 | Déploiement par SSH depuis la machine du propriétaire uniquement, via le CLI Go | o2switch ne peut pas joindre GitHub ; pas de rsync, pas de cron o2switch |
 | Pas d'import WordPress | Le contenu en ligne est quasi vide, saisi à la main |

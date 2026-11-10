@@ -42,18 +42,21 @@ Project docs, memory, specs, and plans live in `aidd_docs/`.
 Read only task-relevant context and linked memory files; complete required reads.
 
 <!-- aidd_project_memory:start -->
-- `aidd_docs/memory/architecture.md`
-- `aidd_docs/memory/auth.md`
-- `aidd_docs/memory/codebase-map.md`
-- `aidd_docs/memory/coding-assertions.md`
-- `aidd_docs/memory/database.md`
-- `aidd_docs/memory/deployment.md`
-- `aidd_docs/memory/design.md`
-- `aidd_docs/memory/ecosystem.md`
-- `aidd_docs/memory/graphify.md`
-- `aidd_docs/memory/project-brief.md`
-- `aidd_docs/memory/testing.md`
-- `aidd_docs/memory/vcs.md`
+
+[aidd_docs/memory/architecture.md](aidd_docs/memory/architecture.md)
+[aidd_docs/memory/auth.md](aidd_docs/memory/auth.md)
+[aidd_docs/memory/codebase-map.md](aidd_docs/memory/codebase-map.md)
+[aidd_docs/memory/coding-assertions.md](aidd_docs/memory/coding-assertions.md)
+[aidd_docs/memory/database.md](aidd_docs/memory/database.md)
+[aidd_docs/memory/deployment.md](aidd_docs/memory/deployment.md)
+[aidd_docs/memory/design.md](aidd_docs/memory/design.md)
+[aidd_docs/memory/ecosystem.md](aidd_docs/memory/ecosystem.md)
+[aidd_docs/memory/graphify.md](aidd_docs/memory/graphify.md)
+[aidd_docs/memory/installation.md](aidd_docs/memory/installation.md)
+[aidd_docs/memory/project-brief.md](aidd_docs/memory/project-brief.md)
+[aidd_docs/memory/testing.md](aidd_docs/memory/testing.md)
+[aidd_docs/memory/vcs.md](aidd_docs/memory/vcs.md)
+
 <!-- aidd_project_memory:end -->
 
 - Load `aidd_docs/memory/external/*` only when asked.

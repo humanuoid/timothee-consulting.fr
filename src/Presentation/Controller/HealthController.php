@@ -14,9 +14,6 @@ final class HealthController
     public function __invoke(HealthChecker $healthChecker): JsonResponse
     {
         // Redis down stays a 200: the site keeps serving from the database.
-        return new JsonResponse(
-            $healthChecker->check(),
-            $healthChecker->isHealthy() ? 200 : 503,
-        );
+        return new JsonResponse($healthChecker->check(), $healthChecker->isHealthy() ? 200 : 503);
     }
 }

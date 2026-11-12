@@ -14,7 +14,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 final class HealthCommand extends Command
 {
     public function __construct(
-        private readonly HealthChecker $healthChecker,
+        private readonly HealthChecker $healthChecker
     ) {
         parent::__construct();
     }

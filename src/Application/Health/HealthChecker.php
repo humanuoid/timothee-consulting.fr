@@ -14,7 +14,7 @@ use App\Domain\Health\HealthProbeInterface;
 final class HealthChecker
 {
     public function __construct(
-        private readonly HealthProbeInterface $healthProbe,
+        private readonly HealthProbeInterface $healthProbe
     ) {
     }
 
@@ -29,7 +29,7 @@ final class HealthChecker
             'php' => \PHP_VERSION,
             'bdd' => $probe['bdd'],
             'redis' => $probe['redis'],
-            'time' => date(\DATE_ATOM),
+            'time' => date(\DATE_ATOM)
         ];
     }
 

@@ -28,6 +28,18 @@ jobs:
       - name: Run Symfony LSP diagnostics (LSP embarqué de la CLI)
         run: symfony lsp:check
 
+      - name: Install Mago 1.59.0 (épinglé, binaire dans le répertoire courant)
+        run: curl --proto '=https' --tlsv1.2 -sSf https://carthage.software/mago.sh | bash -s -- --version=1.59.0
+
+      - name: Mago lint
+        run: ./mago lint
+
+      - name: Mago format check
+        run: ./mago fmt --check
+
+      - name: PHPStan (niveau max)
+        run: vendor/bin/phpstan analyse
+
       - name: Lint YAML config
         run: php bin/console lint:yaml config/ --parse-tags
 
@@ -40,5 +52,8 @@ jobs:
       - name: Compile TypeScript assets (SWC, via sensiolabs/typescript-bundle)
         run: php bin/console typescript:build
 
-      - name: Run tests
-        run: vendor/bin/phpunit
+      - name: Run tests (Pest : arch + unit + feature)
+        run: vendor/bin/pest
+
+      - name: Audit dependencies (advisories PHP + GitHub, sans CLI)
+        run: composer audit

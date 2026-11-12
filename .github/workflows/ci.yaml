@@ -26,7 +26,7 @@ jobs:
       - name: Install Symfony CLI
         run: |
           curl -sS https://get.symfony.com/cli/installer | bash
-          echo "$HOME/.symfony/bin" >> "$GITHUB_PATH"
+          mv "$HOME"/.symfony*/bin/symfony /usr/local/bin/symfony
 
       - name: Run Symfony LSP diagnostics (LSP embarqué de la CLI)
         run: symfony lsp:check

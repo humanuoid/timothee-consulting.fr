@@ -1,5 +1,5 @@
 ---
-status: pending
+status: in-progress
 ---
 
 # Instruction: Outillage qualité + CI (+ refactor health)
@@ -44,11 +44,11 @@ status: pending
 
 > testing.md impose Pest ; la CI lance phpunit sur des tests vides.
 
-1. `composer remove --dev phpunit/phpunit`, puis `composer require --dev pestphp/pest pestphp/pest-plugin-arch --with-all-dependencies` (Pest v5 exige phpunit ^13.4.5 en transitif : plus de contrainte directe)
+1. `composer remove --dev phpunit/phpunit`, puis `composer require --dev pestphp/pest --with-all-dependencies` (Pest v4.7 : v5 exige symfony/process ^8.1, incompatible avec le lock Symfony 7.4 LTS ; phpunit ^12 revient en transitif ; plugin-arch exigé par pest core, pas de require explicite — vérifié)
 2. composer.json : contrainte `php` `>=8.2` → `>=8.4` (Pest v5 exige ^8.4 ; local, CI et prod sont tous en 8.4) ; bloc `replace` resynchronisé sur le skeleton officiel ≥ 8.4 : ajouter `symfony/polyfill-php83` et `symfony/polyfill-php84` (no-ops sur 8.4, actuellement installés en réel dans vendor/ — symfony/clock, http-client, monolog-bundle, serializer les exigent) ; php72→php82, ctype, iconv restent (toujours déclarés par les composants 7.4) ; php85/php86, mbstring, intl-* ne se remplacent pas (fonctionnellement actifs sur 8.4)
 3. `tests/Pest.php` : groupes par dossier — `pest()->group('arch')->in('Arch')`, `->group('unit')->in('Unit')`, `->group('feature')->in('Feature')` ; poser `tests/Unit/.gitkeep` et `tests/Feature/.gitkeep`
-4. Convention verrouillée : `tests/Unit/` = miroir de `src/Domain` uniquement (tests unitaires Domain seulement), `tests/Feature/` = fonctionnels Presentation
-5. `phpunit.dist.xml` : supprimer l'élément `<extensions>` vide ; garder bootstrap, testsuites, source
+4. Convention verrouillée : `tests/Unit/` = miroir de `src/Domain` uniquement (tests unitaires Domain seulement), `tests/Feature/` = fonctionnels Presentation ; fichiers de test suffixés `Test.php` (découverte Pest ; vérifié : un fichier non suffixé n'est pas découvert)
+5. `phpunit.dist.xml` : supprimer l'élément `<extensions>` vide et le `SHELL_VERBOSITY=-1` (mode quiet de Symfony Console : il muet totalement Pest/collision — vérifié) ; garder bootstrap, testsuites, source
 
 ### `2)` Tests d'architecture
 

@@ -1,6 +1,6 @@
 ---
 objective: "Livrer le moteur efolio (composants en code, modèles composés en backoffice, brouillon/publication par langue) et la one-page portfolio FR/EN de Timothée Consulting — cache Redis full-page à tags, contact asynchrone via cron o2switch — déployée en staging preprod puis en prod sur timothee-consulting.fr."
-status: pending
+status: in-progress
 ---
 
 # Plan: Moteur efolio — portfolio one-page Timothée Consulting

@@ -98,7 +98,7 @@ status: in-progress
 
 1. Remplacer `vendor/bin/phpunit` par `vendor/bin/pest`
 2. Ajouter `vendor/bin/phpstan analyse` après composer install
-3. Ajouter l'install mago épinglée (même curl `--version=1.59.0` ; répertoire d'installation ajouté au `GITHUB_PATH` — non vérifié, à ajuster au premier run CI), puis `mago lint` et `mago fmt --check`
+3. Ajouter l'install mago épinglée (même curl `--version=1.59.0`) et invoquer `./mago` directement — l'installeur dépose le binaire dans le répertoire courant, pas de GITHUB_PATH (résolu) — puis `mago lint` et `mago fmt --check`
 4. Ajouter `composer audit` (recommandation CI de la doc Symfony : advisories PHP + GitHub Advisory Database, exit non-zero si vulnérabilité, sans CLI)
 5. Conserver lsp:check, lint:yaml/twig/container, typescript:build ; security.yaml et health.yaml inchangés (health.yaml revu en phase 10)
 

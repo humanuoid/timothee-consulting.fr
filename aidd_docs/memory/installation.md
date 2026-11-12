@@ -11,6 +11,13 @@ brew install php@8.4 composer symfony-cli/tap/symfony-cli
 brew install --cask orbstack        # daemon docker compatible (ou Docker Desktop)
 ```
 
+- **Mago** (lint + format PSR-12) : install épinglée, binaire dans `~/.local/bin` :
+
+```bash
+curl --proto '=https' --tlsv1.2 -sSf https://carthage.software/mago.sh | bash -s -- --version=1.59.0
+mv ./mago ~/.local/bin/mago
+```
+
 - Le fichier `.php-version` à la racine du dépôt fait choisir PHP 8.4 à la
   Symfony CLI (`symfony php -v` doit afficher 8.4.x). Aucun réglage de PATH
   n'est nécessaire pour PHP : `php` et `composer` sont déjà dans `/opt/homebrew/bin`.

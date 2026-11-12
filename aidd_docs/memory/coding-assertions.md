@@ -38,7 +38,7 @@ Règles absolues (détails et exemples dans `architecture.md`) : DDD event-drive
 | ----- | ------- | ------ |
 | 1 | `vendor/bin/pest` | tests unit + arch verts |
 | 2 | `phpstan analyse` | conventions PSR respectées |
-| 3 | `symfony security:check` | aucune vulnérabilité connue |
+| 3 | `symfony check:security` | aucune vulnérabilité connue |
 | 4 | `symfony console asset-map:compile` | assets compilés (TS via SWC) |
 
 ## Behavior

@@ -52,7 +52,7 @@ jobs:
       - name: Compile TypeScript assets (SWC, via sensiolabs/typescript-bundle)
         run: php bin/console typescript:build
 
-      - name: Run tests (Pest : arch + unit + feature)
+      - name: Run tests (Pest arch + unit + feature)
         run: vendor/bin/pest
 
       - name: Audit dependencies (advisories PHP + GitHub, sans CLI)

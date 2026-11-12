@@ -54,9 +54,9 @@ status: in-progress
 
 > Une règle par règle d'architecture, toutes les couches, zéro exception.
 
-1. `tests/Arch/ArchitectureTest.php` — matrice verrouillée en session :
+1. `tests/Arch/ArchitectureTest.php` — matrice verrouillée en session (sémantique vérifiée : `toUse`/`toOnlyUse` matchent des préfixes multi-segments, un segment nu comme `Doctrine` ne matche rien ; les fonctions natives PHP ne comptent pas) :
    - `arch('domain ne dépend de rien')->expect('App\Domain')->toOnlyUse('App\Domain')`
-   - `arch('application: ni doctrine, ni infrastructure, ni presentation')->expect('App\Application')->not->toUse(['Doctrine', 'App\Infrastructure', 'App\Presentation'])` (une `arch()` par namespace interdit si le tableau n'est pas accepté)
+   - `arch('application: domain et symfony de câblage seulement')->expect('App\Application')->toOnlyUse(['App\Application', 'App\Domain', 'Symfony\Component', 'Symfony\Contracts'])` (liste blanche : plus forte qu'une liste noire Doctrine, qui serait née incomplète)
    - `arch('presentation ne touche jamais l\'infrastructure')->expect('App\Presentation')->not->toUse('App\Infrastructure')`
    - `arch('infrastructure: ni application, ni presentation')->expect('App\Infrastructure')->not->toUse(['App\Application', 'App\Presentation'])`
    - `arch('strict types partout')->expect('App')->toUseStrictTypes()`

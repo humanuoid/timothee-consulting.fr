@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Presentation\Command;
 
 use App\Application\Health\HealthChecker;

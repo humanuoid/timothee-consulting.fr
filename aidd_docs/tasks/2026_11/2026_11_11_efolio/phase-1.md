@@ -1,5 +1,5 @@
 ---
-status: in-progress
+status: done
 ---
 
 # Instruction: Outillage qualité + CI (+ refactor health)

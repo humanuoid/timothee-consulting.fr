@@ -11,6 +11,9 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
+      - name: Create .env from committed defaults (cache:clear boots the kernel)
+        run: cp .env.example .env
+
       - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
         with:

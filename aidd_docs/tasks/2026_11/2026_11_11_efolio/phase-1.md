@@ -101,6 +101,7 @@ status: in-progress
 3. Ajouter l'install mago épinglée (même curl `--version=1.59.0`) et invoquer `./mago` directement — l'installeur dépose le binaire dans le répertoire courant, pas de GITHUB_PATH (résolu) — puis `mago lint` et `mago fmt --check`
 4. Ajouter `composer audit` (recommandation CI de la doc Symfony : advisories PHP + GitHub Advisory Database, exit non-zero si vulnérabilité, sans CLI)
 5. Conserver lsp:check, lint:yaml/twig/container, typescript:build ; security.yaml et health.yaml inchangés (health.yaml revu en phase 10)
+6. Créer `.env` depuis `.env.example` avant composer install : la CI n'a **jamais** été verte (tous les runs main depuis le 9 nov. échouent à `cache:clear` — `Dotenv::bootEnv` jette si `.env` est absent, or il est gitignoré) ; les valeurs de `.env.example` suffisent à tous les steps, vérifié par simulation locale
 
 ### `7)` Docs mémoire
 

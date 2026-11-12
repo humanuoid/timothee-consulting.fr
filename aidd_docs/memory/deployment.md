@@ -2,7 +2,7 @@
 
 ## Pipeline
 
-- GitHub Actions sur chaque push : lint + tests. Hebdomadaire : `symfony security:check`. Quotidien à 3h00 : health check de la prod.
+- GitHub Actions sur chaque push : lint + tests + `composer audit`. Hebdomadaire : `symfony check:security`. Quotidien à 3h00 : health check de la prod.
 - Déploiement prod manuel, **uniquement depuis la machine du propriétaire** (clés SSH), via le CLI Go `tools/deploy` :
   1. pré-checks locaux (tests)
   2. `git push` en SSH vers le repo bare sur o2switch (`~/git/timothee-consulting.fr.git`)

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Presentation\Controller;
 
 use App\Application\Health\HealthChecker;
@@ -12,9 +14,6 @@ final class HealthController
     public function __invoke(HealthChecker $healthChecker): JsonResponse
     {
         // Redis down stays a 200: the site keeps serving from the database.
-        return new JsonResponse(
-            $healthChecker->check(),
-            $healthChecker->isHealthy() ? 200 : 503,
-        );
+        return new JsonResponse($healthChecker->check(), $healthChecker->isHealthy() ? 200 : 503);
     }
 }

@@ -35,8 +35,11 @@
             "migrations/.gitignore"
         ]
     },
+    "phpstan/phpstan": {
+        "version": "2.3.5"
+    },
     "phpunit/phpunit": {
-        "version": "13.4",
+        "version": "12.5",
         "recipe": {
             "repo": "github.com/symfony/recipes",
             "branch": "main",

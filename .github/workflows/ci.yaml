@@ -5,11 +5,18 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+  attestations: read
+
 jobs:
   lint-and-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+
+      - name: Create .env from committed defaults (cache:clear boots the kernel)
+        run: cp .env.example .env
 
       - name: Setup PHP 8.4
         uses: shivammathur/setup-php@v2
@@ -23,10 +30,24 @@ jobs:
       - name: Install Symfony CLI
         run: |
           curl -sS https://get.symfony.com/cli/installer | bash
-          echo "$HOME/.symfony/bin" >> "$GITHUB_PATH"
+          mv "$HOME"/.symfony*/bin/symfony /usr/local/bin/symfony
 
       - name: Run Symfony LSP diagnostics (LSP embarqué de la CLI)
         run: symfony lsp:check
+
+      - name: Install Mago 1.59.0 (épinglé)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: curl --proto '=https' --tlsv1.2 -sSf https://carthage.software/mago.sh | bash -s -- --version=1.59.0
+
+      - name: Mago lint
+        run: mago lint
+
+      - name: Mago format check
+        run: mago fmt --check
+
+      - name: PHPStan (niveau max)
+        run: vendor/bin/phpstan analyse
 
       - name: Lint YAML config
         run: php bin/console lint:yaml config/ --parse-tags
@@ -40,5 +61,8 @@ jobs:
       - name: Compile TypeScript assets (SWC, via sensiolabs/typescript-bundle)
         run: php bin/console typescript:build
 
-      - name: Run tests
-        run: vendor/bin/phpunit
+      - name: Run tests (Pest arch + unit + feature)
+        run: vendor/bin/pest
+
+      - name: Audit dependencies (advisories PHP + GitHub, sans CLI)
+        run: composer audit

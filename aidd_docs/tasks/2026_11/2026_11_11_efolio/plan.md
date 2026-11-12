@@ -1,6 +1,6 @@
 ---
 objective: "Livrer le moteur efolio (composants en code, modèles composés en backoffice, brouillon/publication par langue) et la one-page portfolio FR/EN de Timothée Consulting — cache Redis full-page à tags, contact asynchrone via cron o2switch — déployée en staging preprod puis en prod sur timothee-consulting.fr."
-status: pending
+status: in-progress
 ---
 
 # Plan: Moteur efolio — portfolio one-page Timothée Consulting
@@ -11,7 +11,7 @@ Source: Spécifications efolio fournies par l'utilisateur (document « Spécific
 
 | #   | Phase | File | Depends on |
 | --- | ----- | ---- | ---------- |
-| 1   | Outillage qualité + CI | [`phase-1.md`](./phase-1.md) | none |
+| 1   | Outillage qualité + CI (+ refactor health) | [`phase-1.md`](./phase-1.md) | none |
 | 2   | Modèle de données + bindings | [`phase-2.md`](./phase-2.md) | 1 |
 | 3   | Sécurité (TOTP, rate limiter, reset, headers) | [`phase-3.md`](./phase-3.md) | 2 |
 | 4   | Bibliothèque de composants + markdown | [`phase-4.md`](./phase-4.md) | 2 |
@@ -38,15 +38,21 @@ Source: Spécifications efolio fournies par l'utilisateur (document « Spécific
 | https://developers.google.com/search/docs/specialty/international/localized-versions | hreflang et alternates par langue |
 | https://symfony.com/doc/current/service_container/autowiring.html | #[AsAlias] : l'implémentation porte l'alias d'autowiring du port, sans YAML |
 | https://symfony.com/bundles/SchebTwoFactorBundle/current/configuration.html | totp.enabled par env : 2FA désactivable en dev par override |
+| https://pestphp.com/docs/installation | Pest v5 : `composer remove phpunit/phpunit` puis `require pestphp/pest` ; phpunit ^13.4.5 en transitif, PHP ^8.4 |
+| https://pestphp.com/docs/arch-testing | API arch : `toOnlyUse`, `not->toUse`, presets `php`/`security`, `ignoring()` |
+| https://pestphp.com/docs/grouping-tests | `pest()->group()->in()` : groupes arch/unit/feature par dossier |
+| https://mago.carthage.software/ | mago 1.59.0 : install épinglée (`--version`), `mago init` (preset PSR-12, intégration Symfony), `fmt --check` |
+| https://github.com/symfony/skeleton/blob/8.0/composer.json | Skeleton officiel PHP ≥ 8.4 : replace = polyfill-ctype/iconv + php72→php84 ; php83/84 no-ops sur 8.4 (installés en réel aujourd'hui, lock observé), php85/86 et mbstring/intl actifs donc non remplacés |
+| https://symfony.com/doc/current/setup.html | `check:security` est la commande réelle ; en CI, la doc recommande `composer audit` (advisories PHP + GitHub, sans CLI) |
 
 ## Impact
 
 | Category | Verdict and evidence | Handled in |
 | ----- | -------------------- | ------------------ |
 | runtime | o2switch : PHP 8.4 sélectionnable, MariaDB (10.6 selon la doc, à vérifier au premier déploiement), cron cPanel pour Messenger, docroot vers public/ — observé via la FAQ o2switch | 10 |
-| regression | none — contenu greenfield ressaisi via le backoffice, aucun import de la base preprod | none |
+| regression | faible — le refactor health (phase 1) déplace la sonde DBAL/Redis derrière un port Domain : comportement `/health` et `app:health` inchangé, vérifié en phase 1 ; retrait des polyfill-php83/84 du vendor (no-ops sur 8.4, observé dans le lock) ; contenu greenfield ressaisi via le backoffice, aucun import de la base preprod | 1 |
 | architecture | Moteur à composants (code) + modèles composés (backoffice) dans les couches DDD existantes ; SiteRendererInterface en port Domain + décorateur cache Infrastructure ; événements in-process (ContentPublished, DraftSaved) | 2, 4, 6, 7, 8 |
-| documentation | aidd_docs/memory/ décrit l'ancien micro-CMS multi-pages, un sous-domaine admin et « aucun cron o2switch » : refresh complet après approbation (project-brief, architecture, database, design, deployment, testing, codebase-map) | none |
+| documentation | aidd_docs/memory/ décrit l'ancien micro-CMS multi-pages, un sous-domaine admin et « aucun cron o2switch » : refresh complet après approbation (project-brief, architecture, database, design, deployment, testing, codebase-map) ; corrections ciblées en phase 1 (commande sécurité, install mago) | 1 |
 
 ## Rules
 
@@ -80,3 +86,8 @@ Source: Spécifications efolio fournies par l'utilisateur (document « Spécific
 | Contact asynchrone : Messenger transport Doctrine, cron cPanel messenger:consume chaque minute (pattern doc o2switch) | Spec §5 ; o2switch n'a pas supervisord, le cron le remplace |
 | MRD de la preprod (tables typées dtype, snippets) non répliqué : le moteur le supplante, contenu ressaisi via backoffice | Décision de session ; la ressaisie éprouve le moteur |
 | TOTP désactivée en dev (`config/packages/dev/scheb_2fa.yaml`, `totp.enabled: false`), active en test, staging et prod | Ergonomie de dev ; les tests fonctionnels vérifient la vraie 2FA en env test |
+| Matrice d'arch pragmatique : Domain = `App\Domain` seul ; Application = ni Doctrine, ni Infrastructure, ni Presentation (Symfony toléré pour le câblage par attributs) ; Presentation = jamais Infrastructure ; Infrastructure = ni Application, ni Presentation | Le câblage par attributs (#[AsEventListener], #[AsMessageHandler]) met des imports Symfony légitimes en Application ; la matrice stricte du draft aurait été rouge dès la phase 6 — actée en session |
+| « Règles PSR » = PHPStan level max + strict-rules + deprecation-rules (src/) ; style PSR-12 via preset formatter mago (src/ + tests/) | Aucun package PHPStan « PSR » n'existe : la rigueur de typage est PHPStan, le style est mago |
+| strict_types + classes final verrouillés par tests d'arch | Verrou posé sur un codebase de 4 fichiers ; l'imposer plus tard = churn sur tout le codebase |
+| Health refactoré en phase 1 : port `HealthProbeInterface` (Domain), sonde DBAL+Redis (Infrastructure), `HealthChecker` (Application) n'injecte que le port | Le code existant violait la matrice et coding-assertions (DBAL concret injecté en Application) ; l'arch naît sans exception |
+| Tests unitaires limités à la couche Domain (`tests/Unit/`, miroir de `src/Domain`) | Décision utilisateur ; testing.md |

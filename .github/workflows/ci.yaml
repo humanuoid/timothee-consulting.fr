@@ -35,16 +35,16 @@ jobs:
       - name: Run Symfony LSP diagnostics (LSP embarqué de la CLI)
         run: symfony lsp:check
 
-      - name: Install Mago 1.59.0 (épinglé, binaire dans le répertoire courant)
+      - name: Install Mago 1.59.0 (épinglé)
         env:
           GH_TOKEN: ${{ github.token }}
         run: curl --proto '=https' --tlsv1.2 -sSf https://carthage.software/mago.sh | bash -s -- --version=1.59.0
 
       - name: Mago lint
-        run: ./mago lint
+        run: mago lint
 
       - name: Mago format check
-        run: ./mago fmt --check
+        run: mago fmt --check
 
       - name: PHPStan (niveau max)
         run: vendor/bin/phpstan analyse

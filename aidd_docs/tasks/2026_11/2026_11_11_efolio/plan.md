@@ -38,6 +38,7 @@ Source: Spécifications efolio fournies par l'utilisateur (document « Spécific
 | https://developers.google.com/search/docs/specialty/international/localized-versions | hreflang et alternates par langue |
 | https://symfony.com/doc/current/service_container/autowiring.html | #[AsAlias] : l'implémentation porte l'alias d'autowiring du port, sans YAML |
 | https://symfony.com/bundles/SchebTwoFactorBundle/current/configuration.html | totp.enabled par env : 2FA désactivable en dev par override |
+| https://symfony.com/doc/current/doctrine.html | DoctrineBundle : types de mapping `attribute`/`xml`, `validate_xml_mapping` ; le YAML n'est plus un type supporté |
 | https://pestphp.com/docs/installation | Pest v5 : `composer remove phpunit/phpunit` puis `require pestphp/pest` ; phpunit ^13.4.5 en transitif, PHP ^8.4 |
 | https://pestphp.com/docs/arch-testing | API arch : `toOnlyUse`, `not->toUse`, presets `php`/`security`, `ignoring()` |
 | https://pestphp.com/docs/grouping-tests | `pest()->group()->in()` : groupes arch/unit/feature par dossier |
@@ -59,7 +60,7 @@ Source: Spécifications efolio fournies par l'utilisateur (document « Spécific
 | Rule | Why it applies |
 | ---- | -------------- |
 | Zéro ressource externe à l'exécution (JS, CSS, fonts, images) : tout servi localement via l'asset mapper ; seule exception tolérée un service obligatoire type captcha, aucun prévu | Décision verrouillée de l'utilisateur ; CSP script-src 'self' |
-| Aucun mapping ORM dans le Domain : entités PHP pures, mapping Doctrine en YAML dans `src/Infrastructure/Doctrine/Mapping/` (jamais dans `config/`) | Clean architecture : le mapping est un détail d'infrastructure ; corrige l'ancienne note « attributs ORM directs » de la mémoire projet |
+| Aucun mapping ORM dans le Domain : entités PHP pures, mapping Doctrine en **XML** (`.orm.xml`) dans `src/Infrastructure/Doctrine/Mapping/` (jamais dans `config/`) | Clean architecture : le mapping est un détail d'infrastructure ; le YAML prévu initialement est impossible — ORM 3.x a retiré son driver YAML et DoctrineBundle n'accepte que `xml/php/staticphp/attribute` (vérifié dans le vendor, phase 2) |
 | Zéro déclaration de service dans `config/services.yaml` : câblage par attributs PHP (`#[AsAlias]` pour les ports, `#[Autoconfigure]`, `#[AsEventListener]`, `#[AsMessageHandler]`) ; le fichier reste minimal | Décision utilisateur : l'attribut vit dans la couche qui possède la dépendance |
 | Bootstrap 6.0.0-alpha.1 épinglé (jamais ^), auto-hébergé via importmap, tokens CSS par-dessus les variables --bs-*, pas de Sass ; front et backoffice | Décision verrouillée : éprouver la v6 en isolant le style dans une couche de tokens |
 | DDD event-driven : dépendance vers l'intérieur, aucun framework dans Domain, patterns Constant et Décorateur, injection d'interfaces uniquement | Règles du projet (architecture.md, coding-assertions.md) |
@@ -77,7 +78,7 @@ Source: Spécifications efolio fournies par l'utilisateur (document « Spécific
 | Option B : composants définis en code (champs typés + FormType + partial Twig), modèles de page composés dans le backoffice | Flexibilité là où elle sert (structure), typage sûr ; évite le form-builder générique et le contrat fragile Twig-backoffice |
 | Zéro EasyAdmin : backoffice custom Symfony UX (Live Components) sur Bootstrap 6 | Le cœur du produit (compositeur, formulaires dynamiques, preview) est custom de toute façon ; un seul outil cohérent |
 | Markdown source de vérité (CommonMark), HTML brut échappé, jamais de HTML en base | Données stables et portables ; XSS éliminé au rendu |
-| Brouillon/publication par langue (deux copies JSON par PageTranslation), publication = copie + événement ContentPublished ; pas d'historique de versions | La prod n'est jamais touchée par l'édition ; EN peut rester en brouillon pendant que FR est en ligne |
+| Brouillon/publication par langue (deux copies JSON par PageContent), publication = copie + événement ContentPublished ; pas d'historique de versions | La prod n'est jamais touchée par l'édition ; EN peut rester en brouillon pendant que FR est en ligne |
 | One-page V1 : sections ancrées, nav dérivée des slots du modèle ; arbre de pages et multi-pages en V2 | Spec §2 ; KISS |
 | FR par défaut + EN : préfixe /en/, slugs traduits, fallback 404 + masquage nav + hreflang | Décision verrouillée en session |
 | Cache full-page page:{slug}:{locale} avec tags component:{id}, régénération paresseuse | Un seul GET Redis par requête ; invalidation par composant sans assemblage de fragments à runtime |
@@ -91,3 +92,4 @@ Source: Spécifications efolio fournies par l'utilisateur (document « Spécific
 | strict_types + classes final verrouillés par tests d'arch | Verrou posé sur un codebase de 4 fichiers ; l'imposer plus tard = churn sur tout le codebase |
 | Health refactoré en phase 1 : port `HealthProbeInterface` (Domain), sonde DBAL+Redis (Infrastructure), `HealthChecker` (Application) n'injecte que le port | Le code existant violait la matrice et coding-assertions (DBAL concret injecté en Application) ; l'arch naît sans exception |
 | Tests unitaires limités à la couche Domain (`tests/Unit/`, miroir de `src/Domain`) | Décision utilisateur ; testing.md |
+| Entité de contenu nommée `PageContent` (ex-`PageTranslation`), la langue est une colonne : une ligne de contenu par page × langue | Décision d'Emmanuel 2026-11-13 : « PageTranslation » suggérait la traduction d'un contenu préexistant et a causé une confusion ; le contenu est lui-même paramétré par langue. Structure confirmée : `Page` = caractéristiques (ancre d'identité), `PageContent` = contenus. La fusion en une seule entité (proposée puis retirée) supprimait l'ancre dont le V2 (arbre, menu) aura besoin |

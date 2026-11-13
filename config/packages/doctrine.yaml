@@ -14,9 +14,11 @@ doctrine:
         auto_mapping: true
         mappings:
             Domain:
-                type: attribute
+                type: xml
                 is_bundle: false
-                dir: '%kernel.project_dir%/src/Domain'
+                # mapping lives in Infrastructure, not in Domain: entities stay
+                # persistence-agnostic (see plan rules)
+                dir: '%kernel.project_dir%/src/Infrastructure/Doctrine/Mapping'
                 prefix: 'App\Domain'
 
 when@test:

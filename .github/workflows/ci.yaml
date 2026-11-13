@@ -33,7 +33,7 @@ jobs:
           mv "$HOME"/.symfony*/bin/symfony /usr/local/bin/symfony
 
       - name: Run Symfony LSP diagnostics (LSP embarqué de la CLI)
-        run: symfony lsp:check
+        run: symfony lsp:check --verbose
 
       - name: Install Mago 1.59.0 (épinglé)
         env:

@@ -55,7 +55,7 @@ status: pending
 
 > Le brouillon ne touche jamais published.
 
-1. `getWorking(translation)` : draft sinon published
+1. `getWorking(content)` : draft sinon published
 2. `saveDraft(page, locale, payload)` : n'écrit que draft + dispatch `DraftSaved` (constantes `EventNames`)
 
 ### `2)` PageController + PageEditor
@@ -70,7 +70,7 @@ status: pending
 
 > Publication = copie + événement, pas un flip de statut.
 
-1. `publish(page, locale)` : copie draft → published, status, publishedAt + dispatch `ContentPublished`
+1. `publish(page, locale)` : copie draft → published + publishedAt (statut dérivé : `isPublished()`, phase 2) + dispatch `ContentPublished`
 2. Boutons Publier par langue ; badge de statut par langue
 
 ### `4)` Éditeur markdown branché

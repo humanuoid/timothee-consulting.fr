@@ -13,5 +13,11 @@ literal-separator = true
 [linter]
 integrations = ["symfony"]
 
+[linter.rules]
+# Domain entities are plain data carriers: their constructors legitimately
+# take every column they own, so the parameter-count heuristic does not
+# apply to them.
+excessive-parameter-list = { exclude = ["src/Domain/Entity/**"] }
+
 [formatter]
 preset = "psr-12"

@@ -9,9 +9,9 @@ final class Page
     public private(set) ?int $id = null;
 
     /**
-     * Inverse side of PageContent::page. Kept as an iterable on purpose:
-     * the Domain never imports Doctrine collections, hydration swaps in
-     * Doctrine's own implementation.
+     * Inverse side of PageContent::page. Kept as an iterable on purpose: the
+     * Domain must not import the persistence layer's collection type, the
+     * ORM swaps in its own implementation at hydration time.
      *
      * @var iterable<array-key, PageContent>
      */
